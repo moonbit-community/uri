@@ -6,7 +6,7 @@ fn build_query(Array[(String, String)]) -> String
 
 fn debug_string(Uri) -> String
 
-fn decode(String) -> Result[String, UriError]
+fn decode(String) -> String
 
 fn default_port(String) -> Int?
 
@@ -30,7 +30,7 @@ fn is_relative(Uri) -> Bool
 
 fn normalize(Uri) -> Uri
 
-fn of_string(String) -> Result[Uri, UriError]
+fn of_string(String) -> Uri raise UriError
 
 fn parse_query(String) -> Array[(String, String)]
 
@@ -44,7 +44,7 @@ fn query(Uri) -> String?
 
 fn remove_query_param(Uri, String) -> Uri
 
-fn resolve(Uri, Uri) -> Result[Uri, UriError]
+fn resolve(Uri, Uri) -> Uri raise UriError
 
 fn scheme(Uri) -> String?
 
@@ -65,6 +65,16 @@ fn with_query_param(Uri, String, String) -> Uri
 fn with_scheme(Uri, String?) -> Uri
 
 // Errors
+pub suberror UriError {
+  InvalidScheme(String)
+  InvalidAuthority(String)
+  InvalidPath(String)
+  InvalidQuery(String)
+  InvalidFragment(String)
+  InvalidPort(String)
+  EmptyUri
+}
+impl ToJson for UriError
 
 // Types and methods
 pub struct Authority {
@@ -83,17 +93,6 @@ pub struct Uri {
 }
 impl Show for Uri
 impl ToJson for Uri
-
-pub enum UriError {
-  InvalidScheme(String)
-  InvalidAuthority(String)
-  InvalidPath(String)
-  InvalidQuery(String)
-  InvalidFragment(String)
-  InvalidPort(String)
-  EmptyUri
-}
-impl ToJson for UriError
 
 // Type aliases
 

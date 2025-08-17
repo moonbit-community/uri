@@ -26,7 +26,7 @@ pub struct Authority {
 } derive(ToJson)
 
 /// Result type for URI parsing operations
-pub enum UriError {
+pub suberror UriError {
   InvalidScheme(String)
   InvalidAuthority(String)
   InvalidPath(String)
@@ -49,9 +49,9 @@ pub fn empty() -> Uri {
 
 /// Parse a URI string into a Uri structure
 /// Returns Result<Uri, UriError> for error handling
-pub fn of_string(uri_str : String) -> Result[Uri, UriError] {
+pub fn of_string(uri_str : String) -> Uri raise UriError {
   if uri_str.length() == 0 {
-    return Err(EmptyUri)
+    raise EmptyUri
   }
   
   // Start with an empty URI and parse components
@@ -71,17 +71,17 @@ pub fn of_string(uri_str : String) -> Result[Uri, UriError] {
         // Parse the rest
         return parse_with_scheme(scheme_part, rest)
       } else {
-        return Err(InvalidScheme(scheme_part))
+        raise InvalidScheme(scheme_part)
       }
     }
   }
   
   // No scheme found, treat as path-only URI
-  Ok({ ..uri, path: remaining })
+  { ..uri, path: remaining }
 }
 
 /// Parse URI with known scheme
-fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
+fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
   let mut uri = empty()
   uri = { ..uri, scheme: Some(scheme) }
   
@@ -92,7 +92,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
     let frag = parts_fragment[1].to_string()
     // Basic fragment validation - no spaces allowed
     if frag.contains(" ") {
-      return Err(InvalidFragment(frag))
+      raise InvalidFragment(frag)
     }
     Some(frag)
   } else { None }
@@ -105,7 +105,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
     let q = parts_query[1].to_string()
     // Basic query validation - no unescaped spaces
     if q.contains(" ") {
-      return Err(InvalidQuery(q))
+      raise InvalidQuery(q)
     }
     Some(q)
   } else { None }
@@ -116,10 +116,8 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
   if parts_path.length() > 0 {
     let authority_part = parts_path[0].to_string()
     if authority_part.length() > 0 {
-      match parse_authority(authority_part) {
-        Ok(auth) => uri = { ..uri, authority: Some(auth) }
-        Err(e) => return Err(e)
-      }
+      let auth = parse_authority(authority_part)
+      uri = { ..uri, authority: Some(auth) }
     }
     
     // Reconstruct path from remaining parts
@@ -131,7 +129,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
       let path = "/" + path_parts.join("/")
       // Basic path validation - no unescaped spaces
       if path.contains(" ") {
-        return Err(InvalidPath(path))
+        raise InvalidPath(path)
       }
       uri = { ..uri, path }
     } else {
@@ -140,12 +138,12 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
   } else {
     // No authority, remaining is path
     if path_authority_part.contains(" ") {
-      return Err(InvalidPath(path_authority_part))
+      raise InvalidPath(path_authority_part)
     }
     uri = { ..uri, path: path_authority_part }
   }
   
-  Ok(uri)
+  uri
 }
 
 /// Convert a Uri structure back to a string representation
@@ -424,7 +422,7 @@ fn is_valid_scheme(scheme : String) -> Bool {
 }
 
 /// Parse authority component
-fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
+fn parse_authority(auth_str : String) -> Authority raise UriError {
   let mut userinfo : String? = None
   let mut port : Int? = None
   let mut remaining = auth_str
@@ -475,7 +473,7 @@ fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
             }
           }
           if port_value < 0 || port_value > 65535 {
-            return Err(InvalidPort(potential_port))
+            raise InvalidPort(potential_port)
           }
           port = Some(port_value)
           
@@ -487,7 +485,7 @@ fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
           host_parts.join(":")
         } else {
           // Invalid port format - should be an error
-          return Err(InvalidPort(potential_port))
+          raise InvalidPort(potential_port)
         }
       } else {
         remaining
@@ -531,7 +529,7 @@ fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
             }
           }
           if port_value < 0 || port_value > 65535 {
-            return Err(InvalidPort(port_part))
+            raise InvalidPort(port_part)
           }
           port = Some(port_value)
         }
@@ -547,10 +545,10 @@ fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
   }
   
   if host_part.length() == 0 {
-    return Err(InvalidAuthority(auth_str))
+    raise InvalidAuthority(auth_str)
   }
   
-  Ok({ userinfo, host: host_part, port })
+  { userinfo, host: host_part, port }
 }
 
 /// Helper function to check if character is alphabetic
@@ -736,15 +734,15 @@ fn normalize_path(path : String) -> String {
 }
 
 /// Resolve a relative URI against a base URI
-pub fn resolve(base : Uri, relative : Uri) -> Result[Uri, UriError] {
+pub fn resolve(base : Uri, relative : Uri) -> Uri raise UriError {
   // If relative URI is absolute, return it as-is
   if is_absolute(relative) {
-    return Ok(relative)
+    return relative
   }
   
   // Base URI must be absolute
   if is_relative(base) {
-    return Err(InvalidPath("Base URI must be absolute"))
+    raise InvalidPath("Base URI must be absolute")
   }
   
   let mut resolved = base
@@ -795,7 +793,7 @@ pub fn resolve(base : Uri, relative : Uri) -> Result[Uri, UriError] {
     }
   }
   
-  Ok(normalize(resolved))
+  normalize(resolved)
 }
 
 /// Resolve a relative path against a base path
@@ -968,7 +966,7 @@ pub fn encode(input : String) -> String {
 }
 
 /// URL decode a string (percent decoding)
-pub fn decode(input : String) -> Result[String, UriError] {
+pub fn decode(input : String) -> String {
   let mut result = ""
   let mut i = 0
   
@@ -1008,7 +1006,7 @@ pub fn decode(input : String) -> Result[String, UriError] {
     }
   }
   
-  Ok(result)
+  result
 }
 
 /// Check if character is unreserved (doesn't need encoding)

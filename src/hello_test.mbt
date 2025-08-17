@@ -1,13 +1,11 @@
 /// Test basic URI parsing functionality
 test "basic_uri_parsing" {
   // Test simple HTTP URI
-  let uri_result = of_string("https://example.com/path")
-  @json.inspect(uri_result, content={
-    "Ok": {
-      "scheme": "https",
-      "authority": { "host": "example.com" },
-      "path": "/path",
-    },
+  let uri = of_string("https://example.com/path")
+  @json.inspect(uri, content={
+    "scheme": "https",
+    "authority": { "host": "example.com" },
+    "path": "/path",
   })
 }
 
@@ -49,26 +47,31 @@ test "uri_serialization" {
 
 /// Test path-only URI
 test "path_only_uri" {
-  match of_string("/path/to/resource") {
-    Ok(uri) => {
-      if scheme(uri) != None {
-        fail("Expected no scheme")
-      }
-      if host(uri) != None {
-        fail("Expected no host")
-      }
-      if path(uri) != "/path/to/resource" {
-        fail("Expected path '/path/to/resource'")
-      }
+  try {
+    let uri = of_string("/path/to/resource")
+    if scheme(uri) != None {
+      fail("Expected no scheme")
     }
-    Err(_) => fail("Failed to parse path-only URI")
+    if host(uri) != None {
+      fail("Expected no host")
+    }
+    if path(uri) != "/path/to/resource" {
+      fail("Expected path '/path/to/resource'")
+    }
+  } catch {
+    _ => fail("Failed to parse path-only URI")
   }
 }
 
 /// Test empty URI error
 test "empty_uri_error" {
-  let result = of_string("")
-  @json.inspect(result, content=({"Err":"EmptyUri"}))
+  try {
+    let _ = of_string("")
+    fail("Expected EmptyUri error")
+  } catch {
+    UriError::EmptyUri => () // Expected
+    _ => fail("Expected EmptyUri error")
+  }
 }
 
 /// Test URI absolute/relative checks
@@ -92,90 +95,116 @@ test "uri_absolute_relative" {
 
 /// Test invalid scheme
 test "invalid_scheme" {
-  let result = of_string("123invalid://example.com")
-  @json.inspect(result, content=({"Err":["InvalidScheme","123invalid"]}))
+  try {
+    let _ = of_string("123invalid://example.com")
+    fail("Expected InvalidScheme error")
+  } catch {
+    UriError::InvalidScheme(scheme) => {
+      if scheme != "123invalid" {
+        fail("Expected scheme '123invalid', got: " + scheme)
+      }
+    }
+    _ => fail("Expected InvalidScheme error")
+  }
 }
 
 /// Test invalid port
 test "invalid_port" {
-  let result = of_string("http://example.com:abc/path")
-  @json.inspect(result, content=({"Err":["InvalidPort","abc"]}))
+  try {
+    let _ = of_string("http://example.com:abc/path")
+    fail("Expected InvalidPort error")
+  } catch {
+    UriError::InvalidPort(port) => {
+      if port != "abc" {
+        fail("Expected port 'abc', got: " + port)
+      }
+    }
+    _ => fail("Expected InvalidPort error")
+  }
 }
 
 /// Test port out of range
 test "port_out_of_range" {
-  match of_string("http://example.com:99999/path") {
-    Ok(_) => fail("Expected error for port out of range")
-    Err(InvalidPort(_)) => () // Expected
-    Err(_) => fail("Expected InvalidPort error")
+  try {
+    let _ = of_string("http://example.com:99999/path")
+    fail("Expected error for port out of range")
+  } catch {
+    UriError::InvalidPort(_) => () // Expected
+    _ => fail("Expected InvalidPort error")
   }
 }
 
 /// Test invalid path with spaces
 test "invalid_path_spaces" {
-  match of_string("http://example.com/path with spaces") {
-    Ok(_) => fail("Expected error for path with unescaped spaces")
-    Err(InvalidPath(_)) => () // Expected
-    Err(_) => fail("Expected InvalidPath error")
+  try {
+    let _ = of_string("http://example.com/path with spaces")
+    fail("Expected error for path with unescaped spaces")
+  } catch {
+    UriError::InvalidPath(_) => () // Expected
+    _ => fail("Expected InvalidPath error")
   }
 }
 
 /// Test invalid query with spaces
 test "invalid_query_spaces" {
-  match of_string("http://example.com/path?query with spaces") {
-    Ok(_) => fail("Expected error for query with unescaped spaces")
-    Err(InvalidQuery(_)) => () // Expected
-    Err(_) => fail("Expected InvalidQuery error")
+  try {
+    let _ = of_string("http://example.com/path?query with spaces")
+    fail("Expected error for query with unescaped spaces")
+  } catch {
+    UriError::InvalidQuery(_) => () // Expected
+    _ => fail("Expected InvalidQuery error")
   }
 }
 
 /// Test invalid fragment with spaces
 test "invalid_fragment_spaces" {
-  match of_string("http://example.com/path#fragment with spaces") {
-    Ok(_) => fail("Expected error for fragment with unescaped spaces")
-    Err(InvalidFragment(_)) => () // Expected
-    Err(_) => fail("Expected InvalidFragment error")
+  try {
+    let _ = of_string("http://example.com/path#fragment with spaces")
+    fail("Expected error for fragment with unescaped spaces")
+  } catch {
+    UriError::InvalidFragment(_) => () // Expected
+    _ => fail("Expected InvalidFragment error")
   }
 }
 
 /// Test URI normalization
 test "uri_normalization" {
   // Test default port removal
-  let uri1 = of_string("https://example.com:443/path").unwrap()
+  let uri1 = of_string("https://example.com:443/path")
   let normalized1 = normalize(uri1)
   @json.inspect(normalized1, content=({"scheme":"https","authority":{"host":"example.com"},"path":"/path"}))
   
   // Test path normalization
-  let uri2 = of_string("http://example.com/./path/../other/./file.html").unwrap()
+  let uri2 = of_string("http://example.com/./path/../other/./file.html")
   let normalized2 = normalize(uri2)
   @json.inspect(path(normalized2), content=("/other/file.html"))
 }
 
 /// Test URI resolution
 test "uri_resolution" {
-  let base = of_string("https://example.com/docs/guide/").unwrap()
-  let relative = of_string("../api/reference.html").unwrap()
+  let base = of_string("https://example.com/docs/guide/")
+  let relative = of_string("../api/reference.html")
   
-  match resolve(base, relative) {
-    Ok(resolved) => {
-      let expected = "https://example.com/docs/api/reference.html"
-      let actual = to_string(resolved)
-      if actual != expected {
-        fail("Expected '" + expected + "', got: '" + actual + "'")
-      }
+  try {
+    let resolved = resolve(base, relative)
+    let expected = "https://example.com/docs/api/reference.html"
+    let actual = to_string(resolved)
+    if actual != expected {
+      fail("Expected '" + expected + "', got: '" + actual + "'")
     }
-    Err(_) => fail("Failed to resolve relative URI")
+  } catch {
+    _ => fail("Failed to resolve relative URI")
   }
   
   // Test absolute relative URI
-  let absolute_relative = of_string("https://other.com/path").unwrap()
-  match resolve(base, absolute_relative) {
-    Ok(resolved) => {
-      if to_string(resolved) != "https://other.com/path" {
-        fail("Expected absolute URI to be returned as-is")
-      }
+  let absolute_relative = of_string("https://other.com/path")
+  try {
+    let resolved = resolve(base, absolute_relative)
+    if to_string(resolved) != "https://other.com/path" {
+      fail("Expected absolute URI to be returned as-is")
     }
-    Err(_) => fail("Failed to resolve absolute URI")
+  } catch {
+    _ => fail("Failed to resolve absolute URI")
   }
 }
 
@@ -199,7 +228,7 @@ test "query_parameter_building" {
 
 /// Test get query parameter
 test "get_query_parameter" {
-  let uri = of_string("https://example.com/search?q=moonbit&lang=en&safe=on").unwrap()
+  let uri = of_string("https://example.com/search?q=moonbit&lang=en&safe=on")
   
   let param_q = get_query_param(uri, "q")
   @json.inspect(param_q, content=(["moonbit"]))
@@ -211,7 +240,7 @@ test "get_query_parameter" {
 
 /// Test with query parameter
 test "with_query_parameter" {
-  let uri = of_string("https://example.com/search?q=test").unwrap()
+  let uri = of_string("https://example.com/search?q=test")
   
   // Update existing parameter
   let updated = with_query_param(uri, "q", "moonbit")
@@ -226,7 +255,7 @@ test "with_query_parameter" {
 
 /// Test remove query parameter
 test "remove_query_parameter" {
-  let uri = of_string("https://example.com/search?q=test&lang=en&safe=on").unwrap()
+  let uri = of_string("https://example.com/search?q=test&lang=en&safe=on")
   
   let without_lang = remove_query_param(uri, "lang")
   match get_query_param(without_lang, "lang") {
@@ -260,28 +289,26 @@ test "url_encoding" {
 /// Test URL decoding
 test "url_decoding" {
   let decoded_result = decode("hello%20world%21")
-  @json.inspect(decoded_result, content={"Ok":"hello world!"})
+  @json.inspect(decoded_result, content=("hello world!"))
   
   // Test invalid hex
   let invalid_hex_result = decode("hello%ZZ")
-  @json.inspect(invalid_hex_result, content={"Ok":"hello%ZZ"})
+  @json.inspect(invalid_hex_result, content=("hello%ZZ"))
 }
 
 /// Test complex URI with userinfo
 test "complex_uri_with_userinfo" {
-  let uri_result = of_string("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results")
-  @json.inspect(uri_result, content={
-    "Ok": {
-      "scheme": "https",
-      "authority": {
-        "userinfo": "user:pass",
-        "host": "api.example.com",
-        "port": 8080
-      },
-      "path": "/v1/users",
-      "query": "limit=10&offset=0",
-      "fragment": "results"
-    }
+  let uri = of_string("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results")
+  @json.inspect(uri, content={
+    "scheme": "https",
+    "authority": {
+      "userinfo": "user:pass",
+      "host": "api.example.com",
+      "port": 8080
+    },
+    "path": "/v1/users",
+    "query": "limit=10&offset=0",
+    "fragment": "results"
   })
 }
 
@@ -289,20 +316,20 @@ test "complex_uri_with_userinfo" {
 test "url_encoding_round_trip" {
   let original = "Hello World! @#$%^&*()"
   let encoded = encode(original)
-  match decode(encoded) {
-    Ok(decoded) => {
-      if decoded != original {
-        fail("Round trip encoding/decoding failed")
-      }
+  try {
+    let decoded = decode(encoded)
+    if decoded != original {
+      fail("Round trip encoding/decoding failed")
     }
-    Err(_) => fail("Failed to decode encoded string")
+  } catch {
+    _ => fail("Failed to decode encoded string")
   }
 }
 
 /// Test effective port
 test "effective_port" {
   // Explicit port
-  let uri1 = of_string("https://example.com:8080/path").unwrap()
+  let uri1 = of_string("https://example.com:8080/path")
   match effective_port(uri1) {
     Some(port_val) => {
       if port_val != 8080 {
@@ -313,7 +340,7 @@ test "effective_port" {
   }
   
   // Default port
-  let uri2 = of_string("https://example.com/path").unwrap()
+  let uri2 = of_string("https://example.com/path")
   match effective_port(uri2) {
     Some(port_val) => {
       if port_val != 443 {
@@ -324,7 +351,7 @@ test "effective_port" {
   }
   
   // No authority
-  let uri3 = of_string("/path").unwrap()
+  let uri3 = of_string("/path")
   match effective_port(uri3) {
     Some(_) => fail("Expected no port for URI without authority")
     None => () // Expected
@@ -333,7 +360,7 @@ test "effective_port" {
 
 /// Test Show trait implementation
 test "show_trait_implementation" {
-  let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment").unwrap()
+  let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment")
   
   // Test that Show trait works by checking the string representation
   let direct_output = to_string(uri) // Direct function call
@@ -350,7 +377,7 @@ test "show_trait_implementation" {
 
 /// Test debug string representation
 test "debug_string_representation" {
-  let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment").unwrap()
+  let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment")
   let debug_output = debug_string(uri)
   
   // Check that all components are present in debug output
@@ -376,7 +403,7 @@ test "debug_string_representation" {
 
 /// Test pretty string representation
 test "pretty_string_representation" {
-  let uri = of_string("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results").unwrap()
+  let uri = of_string("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results")
   let pretty_output = pretty_string(uri)
   
   // Check for visual indicators
@@ -413,7 +440,7 @@ test "pretty_string_representation" {
 
 /// Test pretty string with minimal URI
 test "pretty_string_minimal_uri" {
-  let uri = of_string("/simple/path").unwrap()
+  let uri = of_string("/simple/path")
   let pretty_output = pretty_string(uri)
   
   if not(pretty_output.contains("📁 Path: /simple/path")) {
@@ -428,7 +455,7 @@ test "pretty_string_minimal_uri" {
 
 /// Test pretty string with default port
 test "pretty_string_default_port" {
-  let uri = of_string("https://example.com/path").unwrap()
+  let uri = of_string("https://example.com/path")
   let pretty_output = pretty_string(uri)
   
   // Should show default port
@@ -439,7 +466,7 @@ test "pretty_string_default_port" {
 
 /// Test debug string with empty components
 test "debug_string_empty_components" {
-  let uri = of_string("/path").unwrap()
+  let uri = of_string("/path")
   let debug_output = debug_string(uri)
   
   if not(debug_output.contains("scheme: None")) {

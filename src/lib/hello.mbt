@@ -88,13 +88,27 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
   // Split by fragment first
   let parts_fragment = rest.split("#").collect()
   let main_part = parts_fragment[0].to_string()
-  let fragment_part = if parts_fragment.length() > 1 { Some(parts_fragment[1].to_string()) } else { None }
+  let fragment_part = if parts_fragment.length() > 1 { 
+    let frag = parts_fragment[1].to_string()
+    // Basic fragment validation - no spaces allowed
+    if frag.contains(" ") {
+      return Err(InvalidFragment(frag))
+    }
+    Some(frag)
+  } else { None }
   uri = { ..uri, fragment: fragment_part }
   
   // Split by query
   let parts_query = main_part.split("?").collect()
   let path_authority_part = parts_query[0].to_string()
-  let query_part = if parts_query.length() > 1 { Some(parts_query[1].to_string()) } else { None }
+  let query_part = if parts_query.length() > 1 { 
+    let q = parts_query[1].to_string()
+    // Basic query validation - no unescaped spaces
+    if q.contains(" ") {
+      return Err(InvalidQuery(q))
+    }
+    Some(q)
+  } else { None }
   uri = { ..uri, query: query_part }
   
   // Split authority and path
@@ -114,10 +128,21 @@ fn parse_with_scheme(scheme : String, rest : String) -> Result[Uri, UriError] {
       for i = 1; i < parts_path.length(); i = i + 1 {
         path_parts.push(parts_path[i].to_string())
       }
-      uri = { ..uri, path: "/" + path_parts.join("/") }
+      let path = "/" + path_parts.join("/")
+      // Basic path validation - no unescaped spaces
+      if path.contains(" ") {
+        return Err(InvalidPath(path))
+      }
+      uri = { ..uri, path }
     } else {
       uri = { ..uri, path: "" }
     }
+  } else {
+    // No authority, remaining is path
+    if path_authority_part.contains(" ") {
+      return Err(InvalidPath(path_authority_part))
+    }
+    uri = { ..uri, path: path_authority_part }
   }
   
   Ok(uri)
@@ -245,11 +270,57 @@ fn is_valid_scheme(scheme : String) -> Bool {
 /// Parse authority component
 fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
   let userinfo : String? = None
-  let port : Int? = None
+  let mut port : Int? = None
   
-  // Simple parsing - just extract host for now
-  // TODO: Add proper userinfo and port parsing
-  let host_part = auth_str
+  // Simple parsing - extract host and validate port if present
+  let host_part = if auth_str.contains(":") {
+    let parts = auth_str.split(":").collect()
+    if parts.length() >= 2 {
+      let potential_port = parts[1].to_string()
+      // Validate port is numeric
+      if potential_port.length() > 0 {
+        let mut is_numeric = true
+        for i = 0; i < potential_port.length(); i = i + 1 {
+          match potential_port.get(i) {
+            Some(char_code) => {
+              let c = char_code.unsafe_to_char()
+              if not(is_digit(c)) {
+                is_numeric = false
+                break
+              }
+            }
+            None => {
+              is_numeric = false
+              break
+            }
+          }
+        }
+        if not(is_numeric) {
+          return Err(InvalidPort(potential_port))
+        }
+        // Convert to int (simplified - in real implementation would handle overflow)
+        let mut port_value = 0
+        for i = 0; i < potential_port.length(); i = i + 1 {
+          match potential_port.get(i) {
+            Some(char_code) => {
+              let digit = char_code - 48 // '0' = 48
+              port_value = port_value * 10 + digit
+            }
+            None => break
+          }
+        }
+        if port_value < 0 || port_value > 65535 {
+          return Err(InvalidPort(potential_port))
+        }
+        port = Some(port_value)
+      }
+      parts[0].to_string()
+    } else {
+      auth_str
+    }
+  } else {
+    auth_str
+  }
   
   if host_part.length() == 0 {
     return Err(InvalidAuthority(auth_str))

@@ -118,3 +118,57 @@ test "uri_absolute_relative" {
     fail("Expected URI without scheme to be relative")
   }
 }
+
+/// Test invalid scheme
+test "invalid_scheme" {
+  match @lib.of_string("123invalid://example.com") {
+    Ok(_) => fail("Expected error for invalid scheme")
+    Err(@lib.InvalidScheme(_)) => () // Expected
+    Err(_) => fail("Expected InvalidScheme error")
+  }
+}
+
+/// Test invalid port
+test "invalid_port" {
+  match @lib.of_string("http://example.com:abc/path") {
+    Ok(_) => fail("Expected error for invalid port")
+    Err(@lib.InvalidPort(_)) => () // Expected
+    Err(_) => fail("Expected InvalidPort error")
+  }
+}
+
+/// Test port out of range
+test "port_out_of_range" {
+  match @lib.of_string("http://example.com:99999/path") {
+    Ok(_) => fail("Expected error for port out of range")
+    Err(@lib.InvalidPort(_)) => () // Expected
+    Err(_) => fail("Expected InvalidPort error")
+  }
+}
+
+/// Test invalid path with spaces
+test "invalid_path_spaces" {
+  match @lib.of_string("http://example.com/path with spaces") {
+    Ok(_) => fail("Expected error for path with unescaped spaces")
+    Err(@lib.InvalidPath(_)) => () // Expected
+    Err(_) => fail("Expected InvalidPath error")
+  }
+}
+
+/// Test invalid query with spaces
+test "invalid_query_spaces" {
+  match @lib.of_string("http://example.com/path?query with spaces") {
+    Ok(_) => fail("Expected error for query with unescaped spaces")
+    Err(@lib.InvalidQuery(_)) => () // Expected
+    Err(_) => fail("Expected InvalidQuery error")
+  }
+}
+
+/// Test invalid fragment with spaces
+test "invalid_fragment_spaces" {
+  match @lib.of_string("http://example.com/path#fragment with spaces") {
+    Ok(_) => fail("Expected error for fragment with unescaped spaces")
+    Err(@lib.InvalidFragment(_)) => () // Expected
+    Err(_) => fail("Expected InvalidFragment error")
+  }
+}

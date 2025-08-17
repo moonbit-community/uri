@@ -1,16 +1,16 @@
 /// Test basic URI parsing functionality
 test "basic_uri_parsing" {
   // Test simple HTTP URI
-  let uri_result = @lib.of_string("https://example.com/path")
+  let uri_result = of_string("https://example.com/path")
   match uri_result {
     Ok(uri) => {
-      if @lib.scheme(uri) != Some("https") {
+      if scheme(uri) != Some("https") {
         fail("Expected scheme 'https'")
       }
-      if @lib.host(uri) != Some("example.com") {
+      if host(uri) != Some("example.com") {
         fail("Expected host 'example.com'")
       }
-      if @lib.path(uri) != "/path" {
+      if path(uri) != "/path" {
         fail("Expected path '/path'")
       }
     }
@@ -20,48 +20,48 @@ test "basic_uri_parsing" {
 
 /// Test empty URI
 test "empty_uri" {
-  let empty_uri = @lib.empty()
-  if @lib.scheme(empty_uri) != None {
+  let empty_uri = empty()
+  if scheme(empty_uri) != None {
     fail("Expected no scheme in empty URI")
   }
-  if @lib.host(empty_uri) != None {
+  if host(empty_uri) != None {
     fail("Expected no host in empty URI")
   }
-  if @lib.path(empty_uri) != "" {
+  if path(empty_uri) != "" {
     fail("Expected empty path in empty URI")
   }
 }
 
 /// Test URI building
 test "uri_building" {
-  let uri = @lib.empty()
-    |> @lib.with_scheme(Some("https"))
-    |> @lib.with_host(Some("api.example.com"))
-    |> @lib.with_path("/v1/users")
-    |> @lib.with_query(Some("limit=10"))
+  let uri = empty()
+    |> with_scheme(Some("https"))
+    |> with_host(Some("api.example.com"))
+    |> with_path("/v1/users")
+    |> with_query(Some("limit=10"))
   
-  if @lib.scheme(uri) != Some("https") {
+  if scheme(uri) != Some("https") {
     fail("Expected scheme 'https'")
   }
-  if @lib.host(uri) != Some("api.example.com") {
+  if host(uri) != Some("api.example.com") {
     fail("Expected host 'api.example.com'")
   }
-  if @lib.path(uri) != "/v1/users" {
+  if path(uri) != "/v1/users" {
     fail("Expected path '/v1/users'")
   }
-  if @lib.query(uri) != Some("limit=10") {
+  if query(uri) != Some("limit=10") {
     fail("Expected query 'limit=10'")
   }
 }
 
 /// Test URI serialization
 test "uri_serialization" {
-  let uri = @lib.empty()
-    |> @lib.with_scheme(Some("http"))
-    |> @lib.with_host(Some("localhost"))
-    |> @lib.with_path("/test")
+  let uri = empty()
+    |> with_scheme(Some("http"))
+    |> with_host(Some("localhost"))
+    |> with_path("/test")
   
-  let uri_string = @lib.to_string(uri)
+  let uri_string = to_string(uri)
   if not(uri_string.contains("http://")) {
     fail("Expected URI string to contain 'http://'")
   }
@@ -75,15 +75,15 @@ test "uri_serialization" {
 
 /// Test path-only URI
 test "path_only_uri" {
-  match @lib.of_string("/path/to/resource") {
+  match of_string("/path/to/resource") {
     Ok(uri) => {
-      if @lib.scheme(uri) != None {
+      if scheme(uri) != None {
         fail("Expected no scheme")
       }
-      if @lib.host(uri) != None {
+      if host(uri) != None {
         fail("Expected no host")
       }
-      if @lib.path(uri) != "/path/to/resource" {
+      if path(uri) != "/path/to/resource" {
         fail("Expected path '/path/to/resource'")
       }
     }
@@ -93,82 +93,82 @@ test "path_only_uri" {
 
 /// Test empty URI error
 test "empty_uri_error" {
-  match @lib.of_string("") {
+  match of_string("") {
     Ok(_) => fail("Expected error for empty URI")
-    Err(@lib.EmptyUri) => () // Expected
+    Err(EmptyUri) => () // Expected
     Err(_) => fail("Expected EmptyUri error")
   }
 }
 
 /// Test URI absolute/relative checks
 test "uri_absolute_relative" {
-  let absolute_uri = @lib.empty() |> @lib.with_scheme(Some("https"))
-  let relative_uri = @lib.empty() |> @lib.with_path("/relative")
+  let absolute_uri = empty() |> with_scheme(Some("https"))
+  let relative_uri = empty() |> with_path("/relative")
   
-  if not(@lib.is_absolute(absolute_uri)) {
+  if not(is_absolute(absolute_uri)) {
     fail("Expected URI with scheme to be absolute")
   }
-  if @lib.is_relative(absolute_uri) {
+  if is_relative(absolute_uri) {
     fail("Expected URI with scheme to not be relative")
   }
-  if @lib.is_absolute(relative_uri) {
+  if is_absolute(relative_uri) {
     fail("Expected URI without scheme to not be absolute")
   }
-  if not(@lib.is_relative(relative_uri)) {
+  if not(is_relative(relative_uri)) {
     fail("Expected URI without scheme to be relative")
   }
 }
 
 /// Test invalid scheme
 test "invalid_scheme" {
-  match @lib.of_string("123invalid://example.com") {
+  match of_string("123invalid://example.com") {
     Ok(_) => fail("Expected error for invalid scheme")
-    Err(@lib.InvalidScheme(_)) => () // Expected
+    Err(InvalidScheme(_)) => () // Expected
     Err(_) => fail("Expected InvalidScheme error")
   }
 }
 
 /// Test invalid port
 test "invalid_port" {
-  match @lib.of_string("http://example.com:abc/path") {
+  match of_string("http://example.com:abc/path") {
     Ok(_) => fail("Expected error for invalid port")
-    Err(@lib.InvalidPort(_)) => () // Expected
+    Err(InvalidPort(_)) => () // Expected
     Err(_) => fail("Expected InvalidPort error")
   }
 }
 
 /// Test port out of range
 test "port_out_of_range" {
-  match @lib.of_string("http://example.com:99999/path") {
+  match of_string("http://example.com:99999/path") {
     Ok(_) => fail("Expected error for port out of range")
-    Err(@lib.InvalidPort(_)) => () // Expected
+    Err(InvalidPort(_)) => () // Expected
     Err(_) => fail("Expected InvalidPort error")
   }
 }
 
 /// Test invalid path with spaces
 test "invalid_path_spaces" {
-  match @lib.of_string("http://example.com/path with spaces") {
+  match of_string("http://example.com/path with spaces") {
     Ok(_) => fail("Expected error for path with unescaped spaces")
-    Err(@lib.InvalidPath(_)) => () // Expected
+    Err(InvalidPath(_)) => () // Expected
     Err(_) => fail("Expected InvalidPath error")
   }
 }
 
 /// Test invalid query with spaces
 test "invalid_query_spaces" {
-  match @lib.of_string("http://example.com/path?query with spaces") {
+  match of_string("http://example.com/path?query with spaces") {
     Ok(_) => fail("Expected error for query with unescaped spaces")
-    Err(@lib.InvalidQuery(_)) => () // Expected
+    Err(InvalidQuery(_)) => () // Expected
     Err(_) => fail("Expected InvalidQuery error")
   }
 }
 
 /// Test invalid fragment with spaces
 test "invalid_fragment_spaces" {
-  match @lib.of_string("http://example.com/path#fragment with spaces") {
+  match of_string("http://example.com/path#fragment with spaces") {
     Ok(_) => fail("Expected error for fragment with unescaped spaces")
-    Err(@lib.InvalidFragment(_)) => () // Expected
+    Err(InvalidFragment(_)) => () // Expected
     Err(_) => fail("Expected InvalidFragment error")
   }
 }

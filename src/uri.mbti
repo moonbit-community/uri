@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/uri"
+
+// Values
+fn empty() -> Uri
+
+fn example_parse() -> Unit
+
+fn fragment(Uri) -> String?
+
+fn host(Uri) -> String?
+
+fn is_absolute(Uri) -> Bool
+
+fn is_relative(Uri) -> Bool
+
+fn of_string(String) -> Result[Uri, UriError]
+
+fn path(Uri) -> String
+
+fn port(Uri) -> Int?
+
+fn query(Uri) -> String?
+
+fn scheme(Uri) -> String?
+
+fn to_string(Uri) -> String
+
+fn with_fragment(Uri, String?) -> Uri
+
+fn with_host(Uri, String?) -> Uri
+
+fn with_path(Uri, String) -> Uri
+
+fn with_port(Uri, Int?) -> Uri
+
+fn with_query(Uri, String?) -> Uri
+
+fn with_scheme(Uri, String?) -> Uri
+
+// Errors
+
+// Types and methods
+pub struct Authority {
+  userinfo : String?
+  host : String
+  port : Int?
+}
+
+pub struct Uri {
+  scheme : String?
+  authority : Authority?
+  path : String
+  query : String?
+  fragment : String?
+}
+
+pub enum UriError {
+  InvalidScheme(String)
+  InvalidAuthority(String)
+  InvalidPath(String)
+  InvalidQuery(String)
+  InvalidFragment(String)
+  InvalidPort(String)
+  EmptyUri
+}
+
+// Type aliases
+
+// Traits
+

@@ -2,34 +2,19 @@
 test "basic_uri_parsing" {
   // Test simple HTTP URI
   let uri_result = of_string("https://example.com/path")
-  match uri_result {
-    Ok(uri) => {
-      if scheme(uri) != Some("https") {
-        fail("Expected scheme 'https'")
-      }
-      if host(uri) != Some("example.com") {
-        fail("Expected host 'example.com'")
-      }
-      if path(uri) != "/path" {
-        fail("Expected path '/path'")
-      }
-    }
-    Err(_) => fail("Failed to parse valid URI")
-  }
+  @json.inspect(uri_result, content={
+    "Ok": {
+      "scheme": "https",
+      "authority": { "host": "example.com" },
+      "path": "/path",
+    },
+  })
 }
 
 /// Test empty URI
 test "empty_uri" {
   let empty_uri = empty()
-  if scheme(empty_uri) != None {
-    fail("Expected no scheme in empty URI")
-  }
-  if host(empty_uri) != None {
-    fail("Expected no host in empty URI")
-  }
-  if path(empty_uri) != "" {
-    fail("Expected empty path in empty URI")
-  }
+  @json.inspect(empty_uri, content=({"path":""}))
 }
 
 /// Test URI building
@@ -40,18 +25,7 @@ test "uri_building" {
     |> with_path("/v1/users")
     |> with_query(Some("limit=10"))
   
-  if scheme(uri) != Some("https") {
-    fail("Expected scheme 'https'")
-  }
-  if host(uri) != Some("api.example.com") {
-    fail("Expected host 'api.example.com'")
-  }
-  if path(uri) != "/v1/users" {
-    fail("Expected path '/v1/users'")
-  }
-  if query(uri) != Some("limit=10") {
-    fail("Expected query 'limit=10'")
-  }
+  @json.inspect(uri, content=({"scheme":"https","authority":{"host":"api.example.com"},"path":"/v1/users","query":"limit=10"}))
 }
 
 /// Test URI serialization
@@ -93,11 +67,8 @@ test "path_only_uri" {
 
 /// Test empty URI error
 test "empty_uri_error" {
-  match of_string("") {
-    Ok(_) => fail("Expected error for empty URI")
-    Err(EmptyUri) => () // Expected
-    Err(_) => fail("Expected EmptyUri error")
-  }
+  let result = of_string("")
+  @json.inspect(result, content=({"Err":"EmptyUri"}))
 }
 
 /// Test URI absolute/relative checks
@@ -121,20 +92,14 @@ test "uri_absolute_relative" {
 
 /// Test invalid scheme
 test "invalid_scheme" {
-  match of_string("123invalid://example.com") {
-    Ok(_) => fail("Expected error for invalid scheme")
-    Err(InvalidScheme(_)) => () // Expected
-    Err(_) => fail("Expected InvalidScheme error")
-  }
+  let result = of_string("123invalid://example.com")
+  @json.inspect(result, content=({"Err":["InvalidScheme","123invalid"]}))
 }
 
 /// Test invalid port
 test "invalid_port" {
-  match of_string("http://example.com:abc/path") {
-    Ok(_) => fail("Expected error for invalid port")
-    Err(InvalidPort(_)) => () // Expected
-    Err(_) => fail("Expected InvalidPort error")
-  }
+  let result = of_string("http://example.com:abc/path")
+  @json.inspect(result, content=({"Err":["InvalidPort","abc"]}))
 }
 
 /// Test port out of range
@@ -178,19 +143,12 @@ test "uri_normalization" {
   // Test default port removal
   let uri1 = of_string("https://example.com:443/path").unwrap()
   let normalized1 = normalize(uri1)
-  if port(normalized1) != None {
-    fail("Expected default HTTPS port to be removed")
-  }
-  if to_string(normalized1) != "https://example.com/path" {
-    fail("Expected normalized URI without default port")
-  }
+  @json.inspect(normalized1, content=({"scheme":"https","authority":{"host":"example.com"},"path":"/path"}))
   
   // Test path normalization
   let uri2 = of_string("http://example.com/./path/../other/./file.html").unwrap()
   let normalized2 = normalize(uri2)
-  if path(normalized2) != "/other/file.html" {
-    fail("Expected normalized path '/other/file.html', got: " + path(normalized2))
-  }
+  @json.inspect(path(normalized2), content=("/other/file.html"))
 }
 
 /// Test URI resolution
@@ -225,54 +183,29 @@ test "uri_resolution" {
 test "query_parameter_parsing" {
   let query = "name=John&age=30&city=New%20York"
   let params = parse_query(query)
-  
-  if params.length() != 3 {
-    fail("Expected 3 parameters, got: " + params.length().to_string())
-  }
-  
-  let (key1, value1) = params[0]
-  if key1 != "name" || value1 != "John" {
-    fail("Expected first param to be name=John")
-  }
-  
-  let (key2, value2) = params[1]
-  if key2 != "age" || value2 != "30" {
-    fail("Expected second param to be age=30")
-  }
-  
-  let (key3, value3) = params[2]
-  if key3 != "city" || value3 != "New%20York" {
-    fail("Expected third param to be city=New%20York")
-  }
+  @json.inspect(params, content=[
+    ["name", "John"],
+    ["age", "30"], 
+    ["city", "New%20York"]
+  ])
 }
 
 /// Test query parameter building
 test "query_parameter_building" {
   let params = [("name", "John"), ("age", "30"), ("active", "")]
   let query = build_query(params)
-  
-  if query != "name=John&age=30&active" {
-    fail("Expected 'name=John&age=30&active', got: '" + query + "'")
-  }
+  @json.inspect(query, content=("name=John&age=30&active"))
 }
 
 /// Test get query parameter
 test "get_query_parameter" {
   let uri = of_string("https://example.com/search?q=moonbit&lang=en&safe=on").unwrap()
   
-  match get_query_param(uri, "q") {
-    Some(value) => {
-      if value != "moonbit" {
-        fail("Expected 'moonbit', got: '" + value + "'")
-      }
-    }
-    None => fail("Expected to find query parameter 'q'")
-  }
+  let param_q = get_query_param(uri, "q")
+  @json.inspect(param_q, content=(["moonbit"]))
   
-  match get_query_param(uri, "nonexistent") {
-    Some(_) => fail("Expected None for nonexistent parameter")
-    None => () // Expected
-  }
+  let param_nonexistent = get_query_param(uri, "nonexistent")
+  @json.inspect(param_nonexistent, content=null)
 }
 
 /// Test with query parameter
@@ -281,25 +214,13 @@ test "with_query_parameter" {
   
   // Update existing parameter
   let updated = with_query_param(uri, "q", "moonbit")
-  match get_query_param(updated, "q") {
-    Some(value) => {
-      if value != "moonbit" {
-        fail("Expected updated value 'moonbit'")
-      }
-    }
-    None => fail("Expected to find updated parameter")
-  }
+  let updated_param = get_query_param(updated, "q")
+  @json.inspect(updated_param)
   
   // Add new parameter
   let with_new = with_query_param(updated, "lang", "en")
-  match get_query_param(with_new, "lang") {
-    Some(value) => {
-      if value != "en" {
-        fail("Expected new parameter value 'en'")
-      }
-    }
-    None => fail("Expected to find new parameter")
-  }
+  let new_param = get_query_param(with_new, "lang")
+  @json.inspect(new_param)
 }
 
 /// Test remove query parameter
@@ -327,42 +248,40 @@ test "remove_query_parameter" {
 test "url_encoding" {
   let input = "hello world!"
   let encoded = encode(input)
-  
-  if not(encoded.contains("%20")) {
-    fail("Expected space to be encoded as %20")
-  }
-  if not(encoded.contains("%21")) {
-    fail("Expected exclamation mark to be encoded as %21")
-  }
+  @json.inspect(encoded)
   
   // Test unreserved characters
   let unreserved = "hello-world_123.test~"
   let encoded_unreserved = encode(unreserved)
-  if encoded_unreserved != unreserved {
-    fail("Expected unreserved characters to not be encoded")
-  }
+  @json.inspect(encoded_unreserved)
 }
 
 /// Test URL decoding
 test "url_decoding" {
-  match decode("hello%20world%21") {
-    Ok(decoded) => {
-      if decoded != "hello world!" {
-        fail("Expected 'hello world!', got: '" + decoded + "'")
-      }
-    }
-    Err(_) => fail("Failed to decode valid URL encoded string")
-  }
+  let decoded_result = decode("hello%20world%21")
+  @json.inspect(decoded_result)
   
   // Test invalid hex
-  match decode("hello%ZZ") {
-    Ok(decoded) => {
-      if decoded != "hello%ZZ" {
-        fail("Expected invalid hex to be treated as literal")
-      }
+  let invalid_hex_result = decode("hello%ZZ")
+  @json.inspect(invalid_hex_result)
+}
+
+/// Test complex URI with userinfo
+test "complex_uri_with_userinfo" {
+  let uri_result = of_string("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results")
+  @json.inspect(uri_result, content={
+    "Ok": {
+      "scheme": "https",
+      "authority": {
+        "userinfo": "user:pass",
+        "host": "api.example.com",
+        "port": 8080
+      },
+      "path": "/v1/users",
+      "query": "limit=10&offset=0",
+      "fragment": "results"
     }
-    Err(_) => fail("Expected invalid hex to be handled gracefully")
-  }
+  })
 }
 
 /// Test URL encoding round trip

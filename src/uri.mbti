@@ -80,6 +80,7 @@ pub struct Uri {
   query : String?
   fragment : String?
 }
+impl Show for Uri
 
 pub enum UriError {
   InvalidScheme(String)

@@ -15,7 +15,7 @@ pub struct Uri {
   path : String
   query : String?
   fragment : String?
-}
+} derive(ToJson)
 
 /// Authority component of a URI
 /// Contains optional user info, required host, and optional port
@@ -23,7 +23,7 @@ pub struct Authority {
   userinfo : String?
   host : String
   port : Int?
-}
+} derive(ToJson)
 
 /// Result type for URI parsing operations
 pub enum UriError {
@@ -34,7 +34,7 @@ pub enum UriError {
   InvalidFragment(String)
   InvalidPort(String)
   EmptyUri
-}
+} derive(ToJson(style="flat"))
 
 /// Create an empty URI with default values
 pub fn empty() -> Uri {
@@ -199,7 +199,7 @@ pub fn to_string(uri : Uri) -> String {
 }
 
 /// Implement Show trait for Uri to provide standard string representation
-impl Show for Uri with output(self, logger) {
+pub impl Show for Uri with output(self, logger) {
   // Use our existing to_string function for the Show implementation
   logger.write_string(to_string(self))
 }

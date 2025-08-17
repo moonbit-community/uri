@@ -353,39 +353,39 @@ pub fn pretty_string(uri : Uri) -> String {
 }
 
 /// Get the scheme component of the URI
-pub fn scheme(uri : Uri) -> String? {
-  uri.scheme
+pub fn Uri::scheme(self : Uri) -> String? {
+  self.scheme
 }
 
 /// Get the host component of the URI
-pub fn host(uri : Uri) -> String? {
-  match uri.authority {
+pub fn Uri::host(self : Uri) -> String? {
+  match self.authority {
     Some(auth) => Some(auth.host)
     None => None
   }
 }
 
 /// Get the port component of the URI
-pub fn port(uri : Uri) -> Int? {
-  match uri.authority {
+pub fn Uri::port(self : Uri) -> Int? {
+  match self.authority {
     Some(auth) => auth.port
     None => None
   }
 }
 
 /// Get the path component of the URI
-pub fn path(uri : Uri) -> String {
-  uri.path
+pub fn Uri::path(self : Uri) -> String {
+  self.path
 }
 
 /// Get the query component of the URI
-pub fn query(uri : Uri) -> String? {
-  uri.query
+pub fn Uri::query(self : Uri) -> String? {
+  self.query
 }
 
 /// Get the fragment component of the URI
-pub fn fragment(uri : Uri) -> String? {
-  uri.fragment
+pub fn Uri::fragment(self : Uri) -> String? {
+  self.fragment
 }
 
 /// Check if a scheme string is valid according to RFC3986
@@ -562,69 +562,69 @@ fn is_digit(c : Char) -> Bool {
 }
 
 /// Create a new URI with the specified scheme
-pub fn with_scheme(uri : Uri, new_scheme : String?) -> Uri {
-  { ..uri, scheme: new_scheme }
+pub fn Uri::with_scheme(self : Uri, new_scheme : String?) -> Uri {
+  { ..self, scheme: new_scheme }
 }
 
 /// Create a new URI with the specified host
-pub fn with_host(uri : Uri, new_host : String?) -> Uri {
+pub fn Uri::with_host(self : Uri, new_host : String?) -> Uri {
   match new_host {
     Some(host) => {
-      let new_authority = match uri.authority {
+      let new_authority = match self.authority {
         Some(auth) => Some({ ..auth, host })
         None => Some({ userinfo: None, host, port: None })
       }
-      { ..uri, authority: new_authority }
+      { ..self, authority: new_authority }
     }
-    None => { ..uri, authority: None }
+    None => { ..self, authority: None }
   }
 }
 
 /// Create a new URI with the specified port
-pub fn with_port(uri : Uri, new_port : Int?) -> Uri {
-  match uri.authority {
+pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
+  match self.authority {
     Some(auth) => {
       let new_authority = Some({ ..auth, port: new_port })
-      { ..uri, authority: new_authority }
+      { ..self, authority: new_authority }
     }
     None => {
       match new_port {
         Some(port) => {
           let new_authority = Some({ userinfo: None, host: "", port: Some(port) })
-          { ..uri, authority: new_authority }
+          { ..self, authority: new_authority }
         }
-        None => uri
+        None => self
       }
     }
   }
 }
 
 /// Create a new URI with the specified path
-pub fn with_path(uri : Uri, new_path : String) -> Uri {
-  { ..uri, path: new_path }
+pub fn Uri::with_path(self : Uri, new_path : String) -> Uri {
+  { ..self, path: new_path }
 }
 
 /// Create a new URI with the specified query
-pub fn with_query(uri : Uri, new_query : String?) -> Uri {
-  { ..uri, query: new_query }
+pub fn Uri::with_query(self : Uri, new_query : String?) -> Uri {
+  { ..self, query: new_query }
 }
 
 /// Create a new URI with the specified fragment
-pub fn with_fragment(uri : Uri, new_fragment : String?) -> Uri {
-  { ..uri, fragment: new_fragment }
+pub fn Uri::with_fragment(self : Uri, new_fragment : String?) -> Uri {
+  { ..self, fragment: new_fragment }
 }
 
 /// Check if the URI is absolute (has a scheme)
-pub fn is_absolute(uri : Uri) -> Bool {
-  match uri.scheme {
+pub fn Uri::is_absolute(self : Uri) -> Bool {
+  match self.scheme {
     Some(_) => true
     None => false
   }
 }
 
 /// Check if the URI is relative (no scheme)
-pub fn is_relative(uri : Uri) -> Bool {
-  not(is_absolute(uri))
+pub fn Uri::is_relative(self : Uri) -> Bool {
+  !(self.is_absolute())
 }
 
 /// Get the default port for a given scheme
@@ -647,13 +647,13 @@ pub fn default_port(scheme : String) -> Int? {
 }
 
 /// Get the effective port (explicit port or default port for scheme)
-pub fn effective_port(uri : Uri) -> Int? {
-  match uri.authority {
+pub fn Uri::effective_port(self : Uri) -> Int? {
+  match self.authority {
     Some(auth) => {
       match auth.port {
         Some(port) => Some(port)
         None => {
-          match uri.scheme {
+          match self.scheme {
             Some(scheme) => default_port(scheme)
             None => None
           }
@@ -665,13 +665,13 @@ pub fn effective_port(uri : Uri) -> Int? {
 }
 
 /// Normalize a URI (remove default ports, normalize path, etc.)
-pub fn normalize(uri : Uri) -> Uri {
-  let mut normalized = uri
+pub fn Uri::normalize(self : Uri) -> Uri {
+  let mut normalized = self
   
   // Remove default port if present
-  match uri.authority {
+  match self.authority {
     Some(auth) => {
-      match (uri.scheme, auth.port) {
+      match (self.scheme, auth.port) {
         (Some(scheme), Some(port)) => {
           match default_port(scheme) {
             Some(default) => {
@@ -736,12 +736,12 @@ fn normalize_path(path : String) -> String {
 /// Resolve a relative URI against a base URI
 pub fn resolve(base : Uri, relative : Uri) -> Uri raise UriError {
   // If relative URI is absolute, return it as-is
-  if is_absolute(relative) {
+  if relative.is_absolute() {
     return relative
   }
   
   // Base URI must be absolute
-  if is_relative(base) {
+  if base.is_relative() {
     raise InvalidPath("Base URI must be absolute")
   }
   
@@ -793,7 +793,7 @@ pub fn resolve(base : Uri, relative : Uri) -> Uri raise UriError {
     }
   }
   
-  normalize(resolved)
+  resolved.normalize()
 }
 
 /// Resolve a relative path against a base path
@@ -864,8 +864,8 @@ pub fn build_query(pairs : Array[(String, String)]) -> String {
 }
 
 /// Get a specific query parameter value
-pub fn get_query_param(uri : Uri, param_name : String) -> String? {
-  match uri.query {
+pub fn Uri::get_query_param(self : Uri, param_name : String) -> String? {
+  match self.query {
     Some(query_str) => {
       let params = parse_query(query_str)
       for i = 0; i < params.length(); i = i + 1 {
@@ -881,8 +881,8 @@ pub fn get_query_param(uri : Uri, param_name : String) -> String? {
 }
 
 /// Add or update a query parameter
-pub fn with_query_param(uri : Uri, param_name : String, param_value : String) -> Uri {
-  let current_params = match uri.query {
+pub fn Uri::with_query_param(self : Uri, param_name : String, param_value : String) -> Uri {
+  let current_params = match self.query {
     Some(query_str) => parse_query(query_str)
     None => []
   }
@@ -912,12 +912,12 @@ pub fn with_query_param(uri : Uri, param_name : String, param_value : String) ->
     None
   }
   
-  { ..uri, query: new_query }
+  { ..self, query: new_query }
 }
 
 /// Remove a query parameter
-pub fn remove_query_param(uri : Uri, param_name : String) -> Uri {
-  match uri.query {
+pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
+  match self.query {
     Some(query_str) => {
       let current_params = parse_query(query_str)
       let new_params : Array[(String, String)] = []
@@ -936,9 +936,9 @@ pub fn remove_query_param(uri : Uri, param_name : String) -> Uri {
         None
       }
       
-      { ..uri, query: new_query }
+      { ..self, query: new_query }
     }
-    None => uri // No query to modify
+    None => self // No query to modify
   }
 }
 

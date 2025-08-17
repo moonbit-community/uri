@@ -18,10 +18,10 @@ test "empty_uri" {
 /// Test URI building
 test "uri_building" {
   let uri = empty()
-    |> with_scheme(Some("https"))
-    |> with_host(Some("api.example.com"))
-    |> with_path("/v1/users")
-    |> with_query(Some("limit=10"))
+    .with_scheme(Some("https"))
+    .with_host(Some("api.example.com"))
+    .with_path("/v1/users")
+    .with_query(Some("limit=10"))
   
   @json.inspect(uri, content=({"scheme":"https","authority":{"host":"api.example.com"},"path":"/v1/users","query":"limit=10"}))
 }
@@ -29,9 +29,9 @@ test "uri_building" {
 /// Test URI serialization
 test "uri_serialization" {
   let uri = empty()
-    |> with_scheme(Some("http"))
-    |> with_host(Some("localhost"))
-    |> with_path("/test")
+    .with_scheme(Some("http"))
+    .with_host(Some("localhost"))
+    .with_path("/test")
   
   let uri_string = to_string(uri)
   if not(uri_string.contains("http://")) {
@@ -49,13 +49,13 @@ test "uri_serialization" {
 test "path_only_uri" {
   try {
     let uri = of_string("/path/to/resource")
-    if scheme(uri) != None {
+    if uri.scheme() != None {
       fail("Expected no scheme")
     }
-    if host(uri) != None {
+    if uri.host() != None {
       fail("Expected no host")
     }
-    if path(uri) != "/path/to/resource" {
+    if uri.path() != "/path/to/resource" {
       fail("Expected path '/path/to/resource'")
     }
   } catch {
@@ -76,19 +76,19 @@ test "empty_uri_error" {
 
 /// Test URI absolute/relative checks
 test "uri_absolute_relative" {
-  let absolute_uri = empty() |> with_scheme(Some("https"))
-  let relative_uri = empty() |> with_path("/relative")
+  let absolute_uri = empty().with_scheme(Some("https"))
+  let relative_uri = empty().with_path("/relative")
   
-  if not(is_absolute(absolute_uri)) {
+  if not(absolute_uri.is_absolute()) {
     fail("Expected URI with scheme to be absolute")
   }
-  if is_relative(absolute_uri) {
+  if absolute_uri.is_relative() {
     fail("Expected URI with scheme to not be relative")
   }
-  if is_absolute(relative_uri) {
+  if relative_uri.is_absolute() {
     fail("Expected URI without scheme to not be absolute")
   }
-  if not(is_relative(relative_uri)) {
+  if not(relative_uri.is_relative()) {
     fail("Expected URI without scheme to be relative")
   }
 }
@@ -171,13 +171,13 @@ test "invalid_fragment_spaces" {
 test "uri_normalization" {
   // Test default port removal
   let uri1 = of_string("https://example.com:443/path")
-  let normalized1 = normalize(uri1)
+  let normalized1 = uri1.normalize()
   @json.inspect(normalized1, content=({"scheme":"https","authority":{"host":"example.com"},"path":"/path"}))
   
   // Test path normalization
   let uri2 = of_string("http://example.com/./path/../other/./file.html")
-  let normalized2 = normalize(uri2)
-  @json.inspect(path(normalized2), content=("/other/file.html"))
+  let normalized2 = uri2.normalize()
+  @json.inspect(normalized2.path(), content=("/other/file.html"))
 }
 
 /// Test URI resolution
@@ -230,10 +230,10 @@ test "query_parameter_building" {
 test "get_query_parameter" {
   let uri = of_string("https://example.com/search?q=moonbit&lang=en&safe=on")
   
-  let param_q = get_query_param(uri, "q")
+  let param_q = uri.get_query_param("q")
   @json.inspect(param_q, content=(["moonbit"]))
   
-  let param_nonexistent = get_query_param(uri, "nonexistent")
+  let param_nonexistent = uri.get_query_param("nonexistent")
   // FIXME(ups): This is a workaround to fix the test.
   @json.inspect(param_nonexistent, content=Json::null())
 }
@@ -243,13 +243,13 @@ test "with_query_parameter" {
   let uri = of_string("https://example.com/search?q=test")
   
   // Update existing parameter
-  let updated = with_query_param(uri, "q", "moonbit")
-  let updated_param = get_query_param(updated, "q")
+  let updated = uri.with_query_param("q", "moonbit")
+  let updated_param = updated.get_query_param("q")
   @json.inspect(updated_param, content=(["moonbit"]))
   
   // Add new parameter
-  let with_new = with_query_param(updated, "lang", "en")
-  let new_param = get_query_param(with_new, "lang")
+  let with_new = updated.with_query_param("lang", "en")
+  let new_param = with_new.get_query_param("lang")
   @json.inspect(new_param, content=(["en"]))
 }
 
@@ -257,14 +257,14 @@ test "with_query_parameter" {
 test "remove_query_parameter" {
   let uri = of_string("https://example.com/search?q=test&lang=en&safe=on")
   
-  let without_lang = remove_query_param(uri, "lang")
-  match get_query_param(without_lang, "lang") {
+  let without_lang = uri.remove_query_param("lang")
+  match without_lang.get_query_param("lang") {
     Some(_) => fail("Expected parameter 'lang' to be removed")
     None => () // Expected
   }
   
   // Check other parameters still exist
-  match get_query_param(without_lang, "q") {
+  match without_lang.get_query_param("q") {
     Some(value) => {
       if value != "test" {
         fail("Expected 'q' parameter to remain")
@@ -330,7 +330,7 @@ test "url_encoding_round_trip" {
 test "effective_port" {
   // Explicit port
   let uri1 = of_string("https://example.com:8080/path")
-  match effective_port(uri1) {
+  match uri1.effective_port() {
     Some(port_val) => {
       if port_val != 8080 {
         fail("Expected explicit port 8080")
@@ -341,7 +341,7 @@ test "effective_port" {
   
   // Default port
   let uri2 = of_string("https://example.com/path")
-  match effective_port(uri2) {
+  match uri2.effective_port() {
     Some(port_val) => {
       if port_val != 443 {
         fail("Expected default HTTPS port 443")
@@ -352,7 +352,7 @@ test "effective_port" {
   
   // No authority
   let uri3 = of_string("/path")
-  match effective_port(uri3) {
+  match uri3.effective_port() {
     Some(_) => fail("Expected no port for URI without authority")
     None => () // Expected
   }

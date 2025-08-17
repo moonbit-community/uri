@@ -10,59 +10,21 @@ fn decode(String) -> String
 
 fn default_port(String) -> Int?
 
-fn effective_port(Uri) -> Int?
-
 fn empty() -> Uri
 
 fn encode(String) -> String
 
 fn example_parse() -> Unit
 
-fn fragment(Uri) -> String?
-
-fn get_query_param(Uri, String) -> String?
-
-fn host(Uri) -> String?
-
-fn is_absolute(Uri) -> Bool
-
-fn is_relative(Uri) -> Bool
-
-fn normalize(Uri) -> Uri
-
 fn of_string(String) -> Uri raise UriError
 
 fn parse_query(String) -> Array[(String, String)]
 
-fn path(Uri) -> String
-
-fn port(Uri) -> Int?
-
 fn pretty_string(Uri) -> String
-
-fn query(Uri) -> String?
-
-fn remove_query_param(Uri, String) -> Uri
 
 fn resolve(Uri, Uri) -> Uri raise UriError
 
-fn scheme(Uri) -> String?
-
 fn to_string(Uri) -> String
-
-fn with_fragment(Uri, String?) -> Uri
-
-fn with_host(Uri, String?) -> Uri
-
-fn with_path(Uri, String) -> Uri
-
-fn with_port(Uri, Int?) -> Uri
-
-fn with_query(Uri, String?) -> Uri
-
-fn with_query_param(Uri, String, String) -> Uri
-
-fn with_scheme(Uri, String?) -> Uri
 
 // Errors
 pub suberror UriError {
@@ -91,6 +53,25 @@ pub struct Uri {
   query : String?
   fragment : String?
 }
+fn Uri::effective_port(Self) -> Int?
+fn Uri::fragment(Self) -> String?
+fn Uri::get_query_param(Self, String) -> String?
+fn Uri::host(Self) -> String?
+fn Uri::is_absolute(Self) -> Bool
+fn Uri::is_relative(Self) -> Bool
+fn Uri::normalize(Self) -> Self
+fn Uri::path(Self) -> String
+fn Uri::port(Self) -> Int?
+fn Uri::query(Self) -> String?
+fn Uri::remove_query_param(Self, String) -> Self
+fn Uri::scheme(Self) -> String?
+fn Uri::with_fragment(Self, String?) -> Self
+fn Uri::with_host(Self, String?) -> Self
+fn Uri::with_path(Self, String) -> Self
+fn Uri::with_port(Self, Int?) -> Self
+fn Uri::with_query(Self, String?) -> Self
+fn Uri::with_query_param(Self, String, String) -> Self
+fn Uri::with_scheme(Self, String?) -> Self
 impl Show for Uri
 impl ToJson for Uri
 

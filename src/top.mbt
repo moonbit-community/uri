@@ -26,21 +26,21 @@ pub fn example_parse() -> Unit {
     
     // Individual component access
     println("Component access:")
-    println("- Scheme: " + scheme(uri).to_string())
-    println("- Host: " + host(uri).to_string())
-    println("- Port: " + port(uri).to_string())
-    println("- Effective Port: " + effective_port(uri).to_string())
-    println("- Path: " + path(uri))
-    println("- Query: " + query(uri).to_string())
-    println("- Fragment: " + fragment(uri).to_string())
+    println("- Scheme: " + uri.scheme().to_string())
+    println("- Host: " + uri.host().to_string())
+    println("- Port: " + uri.port().to_string())
+    println("- Effective Port: " + uri.effective_port().to_string())
+    println("- Path: " + uri.path())
+    println("- Query: " + uri.query().to_string())
+    println("- Fragment: " + uri.fragment().to_string())
     println("")
     
     // Query parameter manipulation
     println("Query parameter example:")
-    let updated_uri = with_query_param(uri, "page", "2")
+    let updated_uri = uri.with_query_param("page", "2")
     println("After adding page=2: " + to_string(updated_uri))
     
-    match get_query_param(updated_uri, "limit") {
+    match updated_uri.get_query_param("limit") {
       Some(limit) => println("Limit parameter: " + limit)
       None => ()
     }

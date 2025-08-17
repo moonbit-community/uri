@@ -4,6 +4,8 @@ package "bobzhang/uri"
 // Values
 fn build_query(Array[(String, String)]) -> String
 
+fn debug_string(Uri) -> String
+
 fn decode(String) -> Result[String, UriError]
 
 fn default_port(String) -> Int?
@@ -35,6 +37,8 @@ fn parse_query(String) -> Array[(String, String)]
 fn path(Uri) -> String
 
 fn port(Uri) -> Int?
+
+fn pretty_string(Uri) -> String
 
 fn query(Uri) -> String?
 

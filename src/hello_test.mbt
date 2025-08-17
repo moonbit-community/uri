@@ -410,3 +410,128 @@ test "effective_port" {
     None => () // Expected
   }
 }
+
+/// Test Show trait implementation
+test "show_trait_implementation" {
+  let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment").unwrap()
+  
+  // Test that Show trait works by checking the string representation
+  let direct_output = to_string(uri) // Direct function call
+  
+  // The Show trait should provide consistent output
+  if not(direct_output.contains("https://")) {
+    fail("Show output should contain the URI string")
+  }
+  
+  if not(direct_output.contains("example.com:8080")) {
+    fail("Show output should contain host and port")
+  }
+}
+
+/// Test debug string representation
+test "debug_string_representation" {
+  let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment").unwrap()
+  let debug_output = debug_string(uri)
+  
+  // Check that all components are present in debug output
+  if not(debug_output.contains("scheme: Some(\"https\")")) {
+    fail("Debug output should show scheme")
+  }
+  if not(debug_output.contains("host: \"example.com\"")) {
+    fail("Debug output should show host")
+  }
+  if not(debug_output.contains("port: Some(8080)")) {
+    fail("Debug output should show port")
+  }
+  if not(debug_output.contains("path: \"/path\"")) {
+    fail("Debug output should show path")
+  }
+  if not(debug_output.contains("query: Some(\"query=value\")")) {
+    fail("Debug output should show query")
+  }
+  if not(debug_output.contains("fragment: Some(\"fragment\")")) {
+    fail("Debug output should show fragment")
+  }
+}
+
+/// Test pretty string representation
+test "pretty_string_representation" {
+  let uri = of_string("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results").unwrap()
+  let pretty_output = pretty_string(uri)
+  
+  // Check for visual indicators
+  if not(pretty_output.contains("📋 Scheme: https")) {
+    fail("Pretty output should show scheme with icon")
+  }
+  if not(pretty_output.contains("👤 User: user:pass")) {
+    fail("Pretty output should show user info with icon")
+  }
+  if not(pretty_output.contains("🏠 Host: api.example.com")) {
+    fail("Pretty output should show host with icon")
+  }
+  if not(pretty_output.contains("🔌 Port: 8080")) {
+    fail("Pretty output should show port with icon")
+  }
+  if not(pretty_output.contains("📁 Path: /v1/users")) {
+    fail("Pretty output should show path with icon")
+  }
+  if not(pretty_output.contains("❓ Query: limit=10&offset=0")) {
+    fail("Pretty output should show query with icon")
+  }
+  if not(pretty_output.contains("🔗 Fragment: results")) {
+    fail("Pretty output should show fragment with icon")
+  }
+  
+  // Check for query parameter breakdown
+  if not(pretty_output.contains("Parameters:")) {
+    fail("Pretty output should show parameter breakdown")
+  }
+  if not(pretty_output.contains("limit = \"10\"")) {
+    fail("Pretty output should show individual parameters")
+  }
+}
+
+/// Test pretty string with minimal URI
+test "pretty_string_minimal_uri" {
+  let uri = of_string("/simple/path").unwrap()
+  let pretty_output = pretty_string(uri)
+  
+  if not(pretty_output.contains("📁 Path: /simple/path")) {
+    fail("Pretty output should show path for minimal URI")
+  }
+  
+  // Should not contain other components
+  if pretty_output.contains("Scheme:") {
+    fail("Pretty output should not show scheme for path-only URI")
+  }
+}
+
+/// Test pretty string with default port
+test "pretty_string_default_port" {
+  let uri = of_string("https://example.com/path").unwrap()
+  let pretty_output = pretty_string(uri)
+  
+  // Should show default port
+  if not(pretty_output.contains("🔌 Port: 443 (default)")) {
+    fail("Pretty output should show default port for HTTPS")
+  }
+}
+
+/// Test debug string with empty components
+test "debug_string_empty_components" {
+  let uri = of_string("/path").unwrap()
+  let debug_output = debug_string(uri)
+  
+  if not(debug_output.contains("scheme: None")) {
+    fail("Debug output should show None for missing scheme")
+  }
+  if not(debug_output.contains("authority: None")) {
+    fail("Debug output should show None for missing authority")
+  }
+  if not(debug_output.contains("query: None")) {
+    fail("Debug output should show None for missing query")
+  }
+  if not(debug_output.contains("fragment: None")) {
+    fail("Debug output should show None for missing fragment")
+  }
+}

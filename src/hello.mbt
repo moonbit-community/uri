@@ -198,6 +198,162 @@ pub fn to_string(uri : Uri) -> String {
   result
 }
 
+/// Implement Show trait for Uri to provide standard string representation
+impl Show for Uri with output(self, logger) {
+  // Use our existing to_string function for the Show implementation
+  logger.write_string(to_string(self))
+}
+
+/// Pretty print a URI with detailed component breakdown for debugging
+pub fn debug_string(uri : Uri) -> String {
+  let mut result = "Uri {\n"
+  
+  match uri.scheme {
+    Some(scheme) => result = result + "  scheme: Some(\"" + scheme + "\")\n"
+    None => result = result + "  scheme: None\n"
+  }
+  
+  match uri.authority {
+    Some(auth) => {
+      result = result + "  authority: Some(Authority {\n"
+      match auth.userinfo {
+        Some(userinfo) => result = result + "    userinfo: Some(\"" + userinfo + "\")\n"
+        None => result = result + "    userinfo: None\n"
+      }
+      result = result + "    host: \"" + auth.host + "\"\n"
+      match auth.port {
+        Some(port) => result = result + "    port: Some(" + port.to_string() + ")\n"
+        None => result = result + "    port: None\n"
+      }
+      result = result + "  })\n"
+    }
+    None => result = result + "  authority: None\n"
+  }
+  
+  result = result + "  path: \"" + uri.path + "\"\n"
+  
+  match uri.query {
+    Some(query) => result = result + "  query: Some(\"" + query + "\")\n"
+    None => result = result + "  query: None\n"
+  }
+  
+  match uri.fragment {
+    Some(fragment) => result = result + "  fragment: Some(\"" + fragment + "\")\n"
+    None => result = result + "  fragment: None\n"
+  }
+  
+  result = result + "}"
+  result
+}
+
+/// Pretty print a URI with visual separators for easy reading
+pub fn pretty_string(uri : Uri) -> String {
+  let mut result = ""
+  let mut has_content = false
+  
+  // Add scheme with visual indicator
+  match uri.scheme {
+    Some(scheme) => {
+      result = result + "📋 Scheme: " + scheme + "\n"
+      has_content = true
+    }
+    None => ()
+  }
+  
+  // Add authority components
+  match uri.authority {
+    Some(auth) => {
+      if has_content { result = result + "├─ " } else { result = result + "📋 " }
+      result = result + "Authority:\n"
+      
+      match auth.userinfo {
+        Some(userinfo) => result = result + "│  👤 User: " + userinfo + "\n"
+        None => ()
+      }
+      
+      result = result + "│  🏠 Host: " + auth.host + "\n"
+      
+      match auth.port {
+        Some(port) => result = result + "│  🔌 Port: " + port.to_string() + "\n"
+        None => {
+          match uri.scheme {
+            Some(scheme) => {
+              match default_port(scheme) {
+                Some(default) => result = result + "│  🔌 Port: " + default.to_string() + " (default)\n"
+                None => ()
+              }
+            }
+            None => ()
+          }
+        }
+      }
+      has_content = true
+    }
+    None => ()
+  }
+  
+  // Add path
+  if uri.path.length() > 0 {
+    if has_content { result = result + "├─ " } else { result = result + "📋 " }
+    result = result + "📁 Path: " + uri.path + "\n"
+    has_content = true
+  }
+  
+  // Add query
+  match uri.query {
+    Some(query) => {
+      if has_content { result = result + "├─ " } else { result = result + "📋 " }
+      result = result + "❓ Query: " + query + "\n"
+      
+      // Parse and show query parameters
+      let params = parse_query(query)
+      if params.length() > 0 {
+        result = result + "│  Parameters:\n"
+        for i = 0; i < params.length(); i = i + 1 {
+          let (key, value) = params[i]
+          let prefix = if i == params.length() - 1 { "│    └─ " } else { "│    ├─ " }
+          result = result + prefix + key + " = \"" + value + "\"\n"
+        }
+      }
+      has_content = true
+    }
+    None => ()
+  }
+  
+  // Add fragment
+  match uri.fragment {
+    Some(fragment) => {
+      if has_content { result = result + "└─ " } else { result = result + "📋 " }
+      result = result + "🔗 Fragment: " + fragment + "\n"
+    }
+    None => {
+      if has_content && result.contains("├─ ") {
+        // Find the last ├─ and replace with └─
+        let parts = result.split("├─ ").collect()
+        if parts.length() > 1 {
+          let mut new_result = ""
+          for i = 0; i < parts.length() - 1; i = i + 1 {
+            new_result = new_result + parts[i].to_string()
+            if i < parts.length() - 2 {
+              new_result = new_result + "├─ "
+            } else {
+              new_result = new_result + "└─ "
+            }
+          }
+          new_result = new_result + parts[parts.length() - 1].to_string()
+          result = new_result
+        }
+      }
+    }
+  }
+  
+  if not(has_content) {
+    result = "📋 Empty URI"
+  }
+  
+  result
+}
+
 /// Get the scheme component of the URI
 pub fn scheme(uri : Uri) -> String? {
   uri.scheme
@@ -269,14 +425,25 @@ fn is_valid_scheme(scheme : String) -> Bool {
 
 /// Parse authority component
 fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
-  let userinfo : String? = None
+  let mut userinfo : String? = None
   let mut port : Int? = None
+  let mut remaining = auth_str
   
-  // Simple parsing - extract host and validate port if present
-  let host_part = if auth_str.contains(":") {
-    let parts = auth_str.split(":").collect()
+  // Check for userinfo (contains @)
+  if remaining.contains("@") {
+    let parts = remaining.split("@").collect()
     if parts.length() >= 2 {
-      let potential_port = parts[1].to_string()
+      userinfo = Some(parts[0].to_string())
+      remaining = parts[1].to_string()
+    }
+  }
+  
+  // Now parse host and port from remaining
+  let host_part = if remaining.contains(":") && remaining.strip_prefix("[") == None {
+    // Regular host with port (not IPv6)
+    let parts = remaining.split(":").collect()
+    if parts.length() >= 2 {
+      let potential_port = parts[parts.length() - 1].to_string() // Take the last part as port
       // Validate port is numeric
       if potential_port.length() > 0 {
         let mut is_numeric = true
@@ -295,31 +462,88 @@ fn parse_authority(auth_str : String) -> Result[Authority, UriError] {
             }
           }
         }
-        if not(is_numeric) {
+        if is_numeric {
+          // Convert to int
+          let mut port_value = 0
+          for i = 0; i < potential_port.length(); i = i + 1 {
+            match potential_port.get(i) {
+              Some(char_code) => {
+                let digit = char_code - 48 // '0' = 48
+                port_value = port_value * 10 + digit
+              }
+              None => break
+            }
+          }
+          if port_value < 0 || port_value > 65535 {
+            return Err(InvalidPort(potential_port))
+          }
+          port = Some(port_value)
+          
+          // Reconstruct host without the port
+          let host_parts : Array[String] = []
+          for i = 0; i < parts.length() - 1; i = i + 1 {
+            host_parts.push(parts[i].to_string())
+          }
+          host_parts.join(":")
+        } else {
+          // Invalid port format - should be an error
           return Err(InvalidPort(potential_port))
         }
-        // Convert to int (simplified - in real implementation would handle overflow)
-        let mut port_value = 0
-        for i = 0; i < potential_port.length(); i = i + 1 {
-          match potential_port.get(i) {
+      } else {
+        remaining
+      }
+    } else {
+      remaining
+    }
+  } else if remaining.strip_prefix("[") != None {
+    // IPv6 literal - handle specially
+    if remaining.contains("]:") {
+      let bracket_parts = remaining.split("]:").collect()
+      if bracket_parts.length() >= 2 {
+        let ipv6_part = bracket_parts[0].to_string() + "]"
+        let port_part = bracket_parts[1].to_string()
+        // Validate and parse port
+        let mut is_numeric = true
+        for i = 0; i < port_part.length(); i = i + 1 {
+          match port_part.get(i) {
             Some(char_code) => {
-              let digit = char_code - 48 // '0' = 48
-              port_value = port_value * 10 + digit
+              let c = char_code.unsafe_to_char()
+              if not(is_digit(c)) {
+                is_numeric = false
+                break
+              }
             }
-            None => break
+            None => {
+              is_numeric = false
+              break
+            }
           }
         }
-        if port_value < 0 || port_value > 65535 {
-          return Err(InvalidPort(potential_port))
+        if is_numeric && port_part.length() > 0 {
+          let mut port_value = 0
+          for i = 0; i < port_part.length(); i = i + 1 {
+            match port_part.get(i) {
+              Some(char_code) => {
+                let digit = char_code - 48
+                port_value = port_value * 10 + digit
+              }
+              None => break
+            }
+          }
+          if port_value < 0 || port_value > 65535 {
+            return Err(InvalidPort(port_part))
+          }
+          port = Some(port_value)
         }
-        port = Some(port_value)
+        ipv6_part
+      } else {
+        remaining
       }
-      parts[0].to_string()
     } else {
-      auth_str
+      remaining
     }
   } else {
-    auth_str
+    remaining
   }
   
   if host_part.length() == 0 {

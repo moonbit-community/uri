@@ -72,6 +72,7 @@ pub struct Authority {
   host : String
   port : Int?
 }
+impl ToJson for Authority
 
 pub struct Uri {
   scheme : String?
@@ -81,6 +82,7 @@ pub struct Uri {
   fragment : String?
 }
 impl Show for Uri
+impl ToJson for Uri
 
 pub enum UriError {
   InvalidScheme(String)
@@ -91,6 +93,7 @@ pub enum UriError {
   InvalidPort(String)
   EmptyUri
 }
+impl ToJson for UriError
 
 // Type aliases
 

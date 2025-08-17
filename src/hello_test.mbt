@@ -205,7 +205,8 @@ test "get_query_parameter" {
   @json.inspect(param_q, content=(["moonbit"]))
   
   let param_nonexistent = get_query_param(uri, "nonexistent")
-  @json.inspect(param_nonexistent, content=null)
+  // FIXME(ups): This is a workaround to fix the test.
+  @json.inspect(param_nonexistent, content=Json::null())
 }
 
 /// Test with query parameter
@@ -215,12 +216,12 @@ test "with_query_parameter" {
   // Update existing parameter
   let updated = with_query_param(uri, "q", "moonbit")
   let updated_param = get_query_param(updated, "q")
-  @json.inspect(updated_param)
+  @json.inspect(updated_param, content=(["moonbit"]))
   
   // Add new parameter
   let with_new = with_query_param(updated, "lang", "en")
   let new_param = get_query_param(with_new, "lang")
-  @json.inspect(new_param)
+  @json.inspect(new_param, content=(["en"]))
 }
 
 /// Test remove query parameter
@@ -248,22 +249,22 @@ test "remove_query_parameter" {
 test "url_encoding" {
   let input = "hello world!"
   let encoded = encode(input)
-  @json.inspect(encoded)
+  @json.inspect(encoded, content="hello%20world%21")
   
   // Test unreserved characters
   let unreserved = "hello-world_123.test~"
   let encoded_unreserved = encode(unreserved)
-  @json.inspect(encoded_unreserved)
+  @json.inspect(encoded_unreserved, content="hello-world_123.test~")
 }
 
 /// Test URL decoding
 test "url_decoding" {
   let decoded_result = decode("hello%20world%21")
-  @json.inspect(decoded_result)
+  @json.inspect(decoded_result, content={"Ok":"hello world!"})
   
   // Test invalid hex
   let invalid_hex_result = decode("hello%ZZ")
-  @json.inspect(invalid_hex_result)
+  @json.inspect(invalid_hex_result, content={"Ok":"hello%ZZ"})
 }
 
 /// Test complex URI with userinfo

@@ -404,3 +404,443 @@ pub fn is_absolute(uri : Uri) -> Bool {
 pub fn is_relative(uri : Uri) -> Bool {
   not(is_absolute(uri))
 }
+
+/// Get the default port for a given scheme
+pub fn default_port(scheme : String) -> Int? {
+  match scheme {
+    "http" => Some(80)
+    "https" => Some(443)
+    "ftp" => Some(21)
+    "ssh" => Some(22)
+    "telnet" => Some(23)
+    "smtp" => Some(25)
+    "dns" => Some(53)
+    "pop3" => Some(110)
+    "imap" => Some(143)
+    "ldap" => Some(389)
+    "imaps" => Some(993)
+    "pop3s" => Some(995)
+    _ => None
+  }
+}
+
+/// Get the effective port (explicit port or default port for scheme)
+pub fn effective_port(uri : Uri) -> Int? {
+  match uri.authority {
+    Some(auth) => {
+      match auth.port {
+        Some(port) => Some(port)
+        None => {
+          match uri.scheme {
+            Some(scheme) => default_port(scheme)
+            None => None
+          }
+        }
+      }
+    }
+    None => None
+  }
+}
+
+/// Normalize a URI (remove default ports, normalize path, etc.)
+pub fn normalize(uri : Uri) -> Uri {
+  let mut normalized = uri
+  
+  // Remove default port if present
+  match uri.authority {
+    Some(auth) => {
+      match (uri.scheme, auth.port) {
+        (Some(scheme), Some(port)) => {
+          match default_port(scheme) {
+            Some(default) => {
+              if port == default {
+                let new_auth = { ..auth, port: None }
+                normalized = { ..normalized, authority: Some(new_auth) }
+              }
+            }
+            None => ()
+          }
+        }
+        _ => ()
+      }
+    }
+    None => ()
+  }
+  
+  // Normalize path (remove redundant slashes, resolve . and ..)
+  normalized = { ..normalized, path: normalize_path(normalized.path) }
+  
+  normalized
+}
+
+/// Normalize a path by removing redundant elements
+fn normalize_path(path : String) -> String {
+  if path.length() == 0 {
+    return path
+  }
+  
+  // Split path into segments
+  let segments = path.split("/").collect()
+  let normalized_segments : Array[String] = []
+  
+  for segment in segments {
+    let seg_str = segment.to_string()
+    match seg_str {
+      "." => () // Skip current directory references
+      ".." => {
+        // Remove last segment if possible (go up one directory)
+        if normalized_segments.length() > 0 && normalized_segments[normalized_segments.length() - 1] != ".." {
+          let _ = normalized_segments.pop()
+        } else if path.strip_prefix("/") == None {
+          // Only add .. for relative paths
+          normalized_segments.push("..")
+        }
+      }
+      _ => normalized_segments.push(seg_str)
+    }
+  }
+  
+  // Reconstruct path
+  let result = normalized_segments.join("/")
+  
+  // Preserve leading slash for absolute paths
+  if path.strip_prefix("/") != None && result.strip_prefix("/") == None {
+    "/" + result
+  } else {
+    result
+  }
+}
+
+/// Resolve a relative URI against a base URI
+pub fn resolve(base : Uri, relative : Uri) -> Result[Uri, UriError] {
+  // If relative URI is absolute, return it as-is
+  if is_absolute(relative) {
+    return Ok(relative)
+  }
+  
+  // Base URI must be absolute
+  if is_relative(base) {
+    return Err(InvalidPath("Base URI must be absolute"))
+  }
+  
+  let mut resolved = base
+  
+  // If relative has authority, use it and its path/query/fragment
+  match relative.authority {
+    Some(_) => {
+      resolved = {
+        scheme: base.scheme,
+        authority: relative.authority,
+        path: relative.path,
+        query: relative.query,
+        fragment: relative.fragment
+      }
+    }
+    None => {
+      // No authority in relative, use base authority
+      if relative.path == "" {
+        // Empty path, use base path
+        resolved = {
+          scheme: base.scheme,
+          authority: base.authority,
+          path: base.path,
+          query: match relative.query {
+            Some(_) => relative.query
+            None => base.query
+          },
+          fragment: relative.fragment
+        }
+      } else {
+        // Non-empty path
+        let resolved_path = if relative.path.strip_prefix("/") != None {
+          // Absolute path, use as-is
+          relative.path
+        } else {
+          // Relative path, resolve against base
+          resolve_relative_path(base.path, relative.path)
+        }
+        
+        resolved = {
+          scheme: base.scheme,
+          authority: base.authority,
+          path: resolved_path,
+          query: relative.query,
+          fragment: relative.fragment
+        }
+      }
+    }
+  }
+  
+  Ok(normalize(resolved))
+}
+
+/// Resolve a relative path against a base path
+fn resolve_relative_path(base_path : String, relative_path : String) -> String {
+  // Remove filename from base path (keep directory part)
+  let base_dir = if base_path.contains("/") {
+    let parts = base_path.split("/").collect()
+    if parts.length() > 1 {
+      let dir_parts : Array[String] = []
+      for i = 0; i < parts.length() - 1; i = i + 1 {
+        dir_parts.push(parts[i].to_string())
+      }
+      dir_parts.join("/") + "/"
+    } else {
+      ""
+    }
+  } else {
+    ""
+  }
+  
+  normalize_path(base_dir + relative_path)
+}
+
+/// Parse query string into key-value pairs
+pub fn parse_query(query_string : String) -> Array[(String, String)] {
+  if query_string.length() == 0 {
+    return []
+  }
+  
+  let pairs = query_string.split("&").collect()
+  let result : Array[(String, String)] = []
+  
+  for pair in pairs {
+    let pair_str = pair.to_string()
+    if pair_str.contains("=") {
+      let parts = pair_str.split("=").collect()
+      if parts.length() >= 2 {
+        let key = parts[0].to_string()
+        let value = parts[1].to_string()
+        result.push((key, value))
+      } else {
+        // No equals sign, treat as key with empty value
+        result.push((pair_str, ""))
+      }
+    } else {
+      // No equals sign, treat as key with empty value
+      result.push((pair_str, ""))
+    }
+  }
+  
+  result
+}
+
+/// Build query string from key-value pairs
+pub fn build_query(pairs : Array[(String, String)]) -> String {
+  let parts : Array[String] = []
+  
+  for i = 0; i < pairs.length(); i = i + 1 {
+    let (key, value) = pairs[i]
+    if value.length() == 0 {
+      parts.push(key)
+    } else {
+      parts.push(key + "=" + value)
+    }
+  }
+  
+  parts.join("&")
+}
+
+/// Get a specific query parameter value
+pub fn get_query_param(uri : Uri, param_name : String) -> String? {
+  match uri.query {
+    Some(query_str) => {
+      let params = parse_query(query_str)
+      for i = 0; i < params.length(); i = i + 1 {
+        let (key, value) = params[i]
+        if key == param_name {
+          return Some(value)
+        }
+      }
+      None
+    }
+    None => None
+  }
+}
+
+/// Add or update a query parameter
+pub fn with_query_param(uri : Uri, param_name : String, param_value : String) -> Uri {
+  let current_params = match uri.query {
+    Some(query_str) => parse_query(query_str)
+    None => []
+  }
+  
+  let new_params : Array[(String, String)] = []
+  let mut found = false
+  
+  // Update existing parameter or collect others
+  for i = 0; i < current_params.length(); i = i + 1 {
+    let (key, value) = current_params[i]
+    if key == param_name {
+      new_params.push((param_name, param_value))
+      found = true
+    } else {
+      new_params.push((key, value))
+    }
+  }
+  
+  // Add new parameter if not found
+  if not(found) {
+    new_params.push((param_name, param_value))
+  }
+  
+  let new_query = if new_params.length() > 0 {
+    Some(build_query(new_params))
+  } else {
+    None
+  }
+  
+  { ..uri, query: new_query }
+}
+
+/// Remove a query parameter
+pub fn remove_query_param(uri : Uri, param_name : String) -> Uri {
+  match uri.query {
+    Some(query_str) => {
+      let current_params = parse_query(query_str)
+      let new_params : Array[(String, String)] = []
+      
+      // Keep all parameters except the one to remove
+      for i = 0; i < current_params.length(); i = i + 1 {
+        let (key, value) = current_params[i]
+        if key != param_name {
+          new_params.push((key, value))
+        }
+      }
+      
+      let new_query = if new_params.length() > 0 {
+        Some(build_query(new_params))
+      } else {
+        None
+      }
+      
+      { ..uri, query: new_query }
+    }
+    None => uri // No query to modify
+  }
+}
+
+/// URL encode a string (percent encoding)
+pub fn encode(input : String) -> String {
+  let mut result = ""
+  
+  for i = 0; i < input.length(); i = i + 1 {
+    match input.get(i) {
+      Some(char_code) => {
+        let c = char_code.unsafe_to_char()
+        if is_unreserved(c) {
+          result = result + c.to_string()
+        } else {
+          // Percent encode the character
+          let hex = int_to_hex(char_code)
+          result = result + "%" + (if hex.length() == 1 { "0" + hex } else { hex })
+        }
+      }
+      None => ()
+    }
+  }
+  
+  result
+}
+
+/// URL decode a string (percent decoding)
+pub fn decode(input : String) -> Result[String, UriError] {
+  let mut result = ""
+  let mut i = 0
+  
+  while i < input.length() {
+    match input.get(i) {
+      Some(char_code) => {
+        let c = char_code.unsafe_to_char()
+        if c == '%' {
+          // Check if we have at least 2 more characters
+          if i + 2 < input.length() {
+            // Get the next two characters for hex decoding
+            let hex_str = input.substring(start=i + 1, end=i + 3)
+            match hex_to_int(hex_str) {
+              Some(decoded_value) => {
+                result = result + decoded_value.unsafe_to_char().to_string()
+                i = i + 3
+              }
+              None => {
+                // Invalid hex sequence, treat % as literal
+                result = result + "%"
+                i = i + 1
+              }
+            }
+          } else {
+            // Not enough characters for percent encoding
+            result = result + "%"
+            i = i + 1
+          }
+        } else {
+          result = result + c.to_string()
+          i = i + 1
+        }
+      }
+      None => {
+        i = i + 1
+      }
+    }
+  }
+  
+  Ok(result)
+}
+
+/// Check if character is unreserved (doesn't need encoding)
+fn is_unreserved(c : Char) -> Bool {
+  is_alpha(c) || is_digit(c) || c == '-' || c == '.' || c == '_' || c == '~'
+}
+
+/// Convert hex string to integer
+fn hex_to_int(hex_str : String) -> Int? {
+  if hex_str.length() != 2 {
+    return None
+  }
+  
+  let mut result = 0
+  for i = 0; i < 2; i = i + 1 {
+    match hex_str.get(i) {
+      Some(char_code) => {
+        let c = char_code.unsafe_to_char()
+        let digit_value = if c >= '0' && c <= '9' {
+          char_code - 48 // '0' = 48
+        } else if c >= 'A' && c <= 'F' {
+          char_code - 55 // 'A' = 65, so 'A' - 55 = 10
+        } else if c >= 'a' && c <= 'f' {
+          char_code - 87 // 'a' = 97, so 'a' - 87 = 10
+        } else {
+          return None // Invalid hex character
+        }
+        result = result * 16 + digit_value
+      }
+      None => return None
+    }
+  }
+  
+  Some(result)
+}
+
+/// Convert integer to hex string
+fn int_to_hex(value : Int) -> String {
+  if value == 0 {
+    return "0"
+  }
+  
+  let mut result = ""
+  let mut n = value
+  let hex_chars = "0123456789ABCDEF"
+  
+  while n > 0 {
+    let digit = n % 16
+    match hex_chars.get(digit) {
+      Some(char_code) => {
+        result = char_code.unsafe_to_char().to_string() + result
+      }
+      None => break
+    }
+    n = n / 16
+  }
+  
+  result
+}

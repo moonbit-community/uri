@@ -2,11 +2,23 @@
 package "bobzhang/uri"
 
 // Values
+fn build_query(Array[(String, String)]) -> String
+
+fn decode(String) -> Result[String, UriError]
+
+fn default_port(String) -> Int?
+
+fn effective_port(Uri) -> Int?
+
 fn empty() -> Uri
+
+fn encode(String) -> String
 
 fn example_parse() -> Unit
 
 fn fragment(Uri) -> String?
+
+fn get_query_param(Uri, String) -> String?
 
 fn host(Uri) -> String?
 
@@ -14,13 +26,21 @@ fn is_absolute(Uri) -> Bool
 
 fn is_relative(Uri) -> Bool
 
+fn normalize(Uri) -> Uri
+
 fn of_string(String) -> Result[Uri, UriError]
+
+fn parse_query(String) -> Array[(String, String)]
 
 fn path(Uri) -> String
 
 fn port(Uri) -> Int?
 
 fn query(Uri) -> String?
+
+fn remove_query_param(Uri, String) -> Uri
+
+fn resolve(Uri, Uri) -> Result[Uri, UriError]
 
 fn scheme(Uri) -> String?
 
@@ -35,6 +55,8 @@ fn with_path(Uri, String) -> Uri
 fn with_port(Uri, Int?) -> Uri
 
 fn with_query(Uri, String?) -> Uri
+
+fn with_query_param(Uri, String, String) -> Uri
 
 fn with_scheme(Uri, String?) -> Uri
 

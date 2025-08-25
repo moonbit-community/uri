@@ -36,7 +36,19 @@ pub suberror UriError {
   EmptyUri
 } derive(ToJson(style="flat"))
 
-/// Create an empty URI with default values
+/// Create an empty URI with default values.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = empty()
+/// inspect(uri.path(), content="")
+/// inspect(uri.scheme(), content="None")
+/// ```
+///
+/// # Returns
+///
+/// A new `Uri` with all components set to their default values.
 pub fn empty() -> Uri {
   {
     scheme: None,
@@ -47,8 +59,31 @@ pub fn empty() -> Uri {
   }
 }
 
-/// Parse a URI string into a Uri structure
-/// Returns Result<Uri, UriError> for error handling
+/// Parse a URI string into a Uri structure according to RFC3986.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment")
+/// inspect(uri.scheme(), content="Some(\"https\")")
+/// inspect(uri.host(), content="Some(\"example.com\")")
+/// inspect(uri.port(), content="Some(8080)")
+/// ```
+///
+/// # Parameters
+///
+/// - `uri_str`: The URI string to parse
+///
+/// # Returns
+///
+/// A parsed `Uri` structure
+///
+/// # Raises
+///
+/// - `UriError::EmptyUri` if the input string is empty
+/// - `UriError::InvalidScheme` if the scheme is malformed
+/// - `UriError::InvalidAuthority` if the authority is malformed
+/// - Other `UriError` variants for various parsing failures
 pub fn of_string(uri_str : String) -> Uri raise UriError {
   if uri_str.length() == 0 {
     raise EmptyUri
@@ -352,12 +387,34 @@ pub fn pretty_string(uri : Uri) -> String {
   result
 }
 
-/// Get the scheme component of the URI
+/// Get the scheme component of the URI.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = of_string("https://example.com")
+/// inspect(uri.scheme(), content="Some(\"https\")")
+/// ```
+///
+/// # Returns
+///
+/// The scheme as `Some(String)` if present, `None` otherwise.
 pub fn Uri::scheme(self : Uri) -> String? {
   self.scheme
 }
 
-/// Get the host component of the URI
+/// Get the host component of the URI.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = of_string("https://example.com:8080/path")
+/// inspect(uri.host(), content="Some(\"example.com\")")
+/// ```
+///
+/// # Returns
+///
+/// The host as `Some(String)` if present, `None` otherwise.
 pub fn Uri::host(self : Uri) -> String? {
   match self.authority {
     Some(auth) => Some(auth.host)
@@ -365,7 +422,21 @@ pub fn Uri::host(self : Uri) -> String? {
   }
 }
 
-/// Get the port component of the URI
+/// Get the explicit port component of the URI.
+///
+/// Note: This returns only explicitly specified ports. Use `effective_port()`
+/// to get the effective port including defaults.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = of_string("https://example.com:8080/path")
+/// inspect(uri.port(), content="Some(8080)")
+/// ```
+///
+/// # Returns
+///
+/// The port as `Some(Int)` if explicitly specified, `None` otherwise.
 pub fn Uri::port(self : Uri) -> Int? {
   match self.authority {
     Some(auth) => auth.port
@@ -373,12 +444,34 @@ pub fn Uri::port(self : Uri) -> Int? {
   }
 }
 
-/// Get the path component of the URI
+/// Get the path component of the URI.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = of_string("https://example.com/path/to/resource")
+/// inspect(uri.path(), content="/path/to/resource")
+/// ```
+///
+/// # Returns
+///
+/// The path as a `String`. Empty string if no path is specified.
 pub fn Uri::path(self : Uri) -> String {
   self.path
 }
 
-/// Get the query component of the URI
+/// Get the query component of the URI.
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = of_string("https://example.com/path?key=value&foo=bar")
+/// inspect(uri.query(), content="Some(\"key=value&foo=bar\")")
+/// ```
+///
+/// # Returns
+///
+/// The query string as `Some(String)` if present, `None` otherwise.
 pub fn Uri::query(self : Uri) -> String? {
   self.query
 }
@@ -942,7 +1035,24 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
   }
 }
 
-/// URL encode a string (percent encoding)
+/// URL encode a string using percent encoding according to RFC3986.
+///
+/// Encodes unsafe characters as %XX where XX is the hexadecimal representation.
+///
+/// # Example
+///
+/// ```moonbit
+/// let encoded = encode("hello world!")
+/// inspect(encoded, content="hello%20world%21")
+/// ```
+///
+/// # Parameters
+///
+/// - `input`: The string to encode
+///
+/// # Returns
+///
+/// The percent-encoded string
 pub fn encode(input : String) -> String {
   let mut result = ""
   
@@ -965,7 +1075,24 @@ pub fn encode(input : String) -> String {
   result
 }
 
-/// URL decode a string (percent decoding)
+/// URL decode a percent-encoded string according to RFC3986.
+///
+/// Decodes %XX sequences back to their original characters.
+///
+/// # Example
+///
+/// ```moonbit
+/// let decoded = decode("hello%20world%21")
+/// inspect(decoded, content="hello world!")
+/// ```
+///
+/// # Parameters
+///
+/// - `input`: The percent-encoded string to decode
+///
+/// # Returns
+///
+/// The decoded string
 pub fn decode(input : String) -> String {
   let mut result = ""
   let mut i = 0

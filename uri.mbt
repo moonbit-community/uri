@@ -64,7 +64,7 @@ pub fn empty() -> Uri {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = of_string("https://user:pass@example.com:8080/path?query=value#fragment")
+/// let uri = parse("https://user:pass@example.com:8080/path?query=value#fragment")
 /// inspect(uri.scheme(), content="Some(\"https\")")
 /// inspect(uri.host(), content="Some(\"example.com\")")
 /// inspect(uri.port(), content="Some(8080)")
@@ -84,7 +84,7 @@ pub fn empty() -> Uri {
 /// - `UriError::InvalidScheme` if the scheme is malformed
 /// - `UriError::InvalidAuthority` if the authority is malformed
 /// - Other `UriError` variants for various parsing failures
-pub fn of_string(uri_str : String) -> Uri raise UriError {
+pub fn parse(uri_str : String) -> Uri raise UriError {
   if uri_str.length() == 0 {
     raise EmptyUri
   }
@@ -182,14 +182,14 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
 }
 
 /// Convert a Uri structure back to a string representation
-pub fn to_string(uri : Uri) -> String {
+pub fn Uri::to_string(self : Uri) -> String {
   let mut result = ""
   
   // Add scheme
-  match uri.scheme {
+  match self.scheme {
     Some(scheme) => {
       result = result + scheme
-      match uri.authority {
+      match self.authority {
         Some(_) => result = result + "://"
         None => result = result + ":"
       }
@@ -198,7 +198,7 @@ pub fn to_string(uri : Uri) -> String {
   }
   
   // Add authority
-  match uri.authority {
+  match self.authority {
     Some(auth) => {
       match auth.userinfo {
         Some(userinfo) => result = result + userinfo + "@"
@@ -214,16 +214,16 @@ pub fn to_string(uri : Uri) -> String {
   }
   
   // Add path
-  result = result + uri.path
+  result = result + self.path
   
   // Add query
-  match uri.query {
+  match self.query {
     Some(query) => result = result + "?" + query
     None => ()
   }
   
   // Add fragment
-  match uri.fragment {
+  match self.fragment {
     Some(fragment) => result = result + "#" + fragment
     None => ()
   }
@@ -233,166 +233,20 @@ pub fn to_string(uri : Uri) -> String {
 
 /// Implement Show trait for Uri to provide standard string representation
 pub impl Show for Uri with output(self, logger) {
-  // Use our existing to_string function for the Show implementation
-  logger.write_string(to_string(self))
+  // Use our existing to_string method for the Show implementation
+  logger.write_string(self.to_string())
 }
 
-/// Pretty print a URI with detailed component breakdown for debugging
-pub fn debug_string(uri : Uri) -> String {
-  let mut result = "Uri {\n"
-  
-  match uri.scheme {
-    Some(scheme) => result = result + "  scheme: Some(\"" + scheme + "\")\n"
-    None => result = result + "  scheme: None\n"
-  }
-  
-  match uri.authority {
-    Some(auth) => {
-      result = result + "  authority: Some(Authority {\n"
-      match auth.userinfo {
-        Some(userinfo) => result = result + "    userinfo: Some(\"" + userinfo + "\")\n"
-        None => result = result + "    userinfo: None\n"
-      }
-      result = result + "    host: \"" + auth.host + "\"\n"
-      match auth.port {
-        Some(port) => result = result + "    port: Some(" + port.to_string() + ")\n"
-        None => result = result + "    port: None\n"
-      }
-      result = result + "  })\n"
-    }
-    None => result = result + "  authority: None\n"
-  }
-  
-  result = result + "  path: \"" + uri.path + "\"\n"
-  
-  match uri.query {
-    Some(query) => result = result + "  query: Some(\"" + query + "\")\n"
-    None => result = result + "  query: None\n"
-  }
-  
-  match uri.fragment {
-    Some(fragment) => result = result + "  fragment: Some(\"" + fragment + "\")\n"
-    None => result = result + "  fragment: None\n"
-  }
-  
-  result = result + "}"
-  result
-}
 
-/// Pretty print a URI with visual separators for easy reading
-pub fn pretty_string(uri : Uri) -> String {
-  let mut result = ""
-  let mut has_content = false
-  
-  // Add scheme with visual indicator
-  match uri.scheme {
-    Some(scheme) => {
-      result = result + "📋 Scheme: " + scheme + "\n"
-      has_content = true
-    }
-    None => ()
-  }
-  
-  // Add authority components
-  match uri.authority {
-    Some(auth) => {
-      if has_content { result = result + "├─ " } else { result = result + "📋 " }
-      result = result + "Authority:\n"
-      
-      match auth.userinfo {
-        Some(userinfo) => result = result + "│  👤 User: " + userinfo + "\n"
-        None => ()
-      }
-      
-      result = result + "│  🏠 Host: " + auth.host + "\n"
-      
-      match auth.port {
-        Some(port) => result = result + "│  🔌 Port: " + port.to_string() + "\n"
-        None => {
-          match uri.scheme {
-            Some(scheme) => {
-              match default_port(scheme) {
-                Some(default) => result = result + "│  🔌 Port: " + default.to_string() + " (default)\n"
-                None => ()
-              }
-            }
-            None => ()
-          }
-        }
-      }
-      has_content = true
-    }
-    None => ()
-  }
-  
-  // Add path
-  if uri.path.length() > 0 {
-    if has_content { result = result + "├─ " } else { result = result + "📋 " }
-    result = result + "📁 Path: " + uri.path + "\n"
-    has_content = true
-  }
-  
-  // Add query
-  match uri.query {
-    Some(query) => {
-      if has_content { result = result + "├─ " } else { result = result + "📋 " }
-      result = result + "❓ Query: " + query + "\n"
-      
-      // Parse and show query parameters
-      let params = parse_query(query)
-      if params.length() > 0 {
-        result = result + "│  Parameters:\n"
-        for i = 0; i < params.length(); i = i + 1 {
-          let (key, value) = params[i]
-          let prefix = if i == params.length() - 1 { "│    └─ " } else { "│    ├─ " }
-          result = result + prefix + key + " = \"" + value + "\"\n"
-        }
-      }
-      has_content = true
-    }
-    None => ()
-  }
-  
-  // Add fragment
-  match uri.fragment {
-    Some(fragment) => {
-      if has_content { result = result + "└─ " } else { result = result + "📋 " }
-      result = result + "🔗 Fragment: " + fragment + "\n"
-    }
-    None => {
-      if has_content && result.contains("├─ ") {
-        // Find the last ├─ and replace with └─
-        let parts = result.split("├─ ").collect()
-        if parts.length() > 1 {
-          let mut new_result = ""
-          for i = 0; i < parts.length() - 1; i = i + 1 {
-            new_result = new_result + parts[i].to_string()
-            if i < parts.length() - 2 {
-              new_result = new_result + "├─ "
-            } else {
-              new_result = new_result + "└─ "
-            }
-          }
-          new_result = new_result + parts[parts.length() - 1].to_string()
-          result = new_result
-        }
-      }
-    }
-  }
-  
-  if not(has_content) {
-    result = "📋 Empty URI"
-  }
-  
-  result
-}
+
+
 
 /// Get the scheme component of the URI.
 ///
 /// # Example
 ///
 /// ```moonbit
-/// let uri = of_string("https://example.com")
+/// let uri = parse("https://example.com")
 /// inspect(uri.scheme(), content="Some(\"https\")")
 /// ```
 ///
@@ -408,7 +262,7 @@ pub fn Uri::scheme(self : Uri) -> String? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = of_string("https://example.com:8080/path")
+/// let uri = parse("https://example.com:8080/path")
 /// inspect(uri.host(), content="Some(\"example.com\")")
 /// ```
 ///
@@ -430,7 +284,7 @@ pub fn Uri::host(self : Uri) -> String? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = of_string("https://example.com:8080/path")
+/// let uri = parse("https://example.com:8080/path")
 /// inspect(uri.port(), content="Some(8080)")
 /// ```
 ///
@@ -449,7 +303,7 @@ pub fn Uri::port(self : Uri) -> Int? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = of_string("https://example.com/path/to/resource")
+/// let uri = parse("https://example.com/path/to/resource")
 /// inspect(uri.path(), content="/path/to/resource")
 /// ```
 ///
@@ -465,7 +319,7 @@ pub fn Uri::path(self : Uri) -> String {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = of_string("https://example.com/path?key=value&foo=bar")
+/// let uri = parse("https://example.com/path?key=value&foo=bar")
 /// inspect(uri.query(), content="Some(\"key=value&foo=bar\")")
 /// ```
 ///
@@ -721,7 +575,7 @@ pub fn Uri::is_relative(self : Uri) -> Bool {
 }
 
 /// Get the default port for a given scheme
-pub fn default_port(scheme : String) -> Int? {
+fn default_port(scheme : String) -> Int? {
   match scheme {
     "http" => Some(80)
     "https" => Some(443)
@@ -911,7 +765,7 @@ fn resolve_relative_path(base_path : String, relative_path : String) -> String {
 }
 
 /// Parse query string into key-value pairs
-pub fn parse_query(query_string : String) -> Array[(String, String)] {
+fn parse_query(query_string : String) -> Array[(String, String)] {
   if query_string.length() == 0 {
     return []
   }
@@ -941,7 +795,7 @@ pub fn parse_query(query_string : String) -> Array[(String, String)] {
 }
 
 /// Build query string from key-value pairs
-pub fn build_query(pairs : Array[(String, String)]) -> String {
+fn build_query(pairs : Array[(String, String)]) -> String {
   let parts : Array[String] = []
   
   for i = 0; i < pairs.length(); i = i + 1 {
@@ -1038,11 +892,12 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
 /// URL encode a string using percent encoding according to RFC3986.
 ///
 /// Encodes unsafe characters as %XX where XX is the hexadecimal representation.
+/// This is essential for proper URI component handling.
 ///
 /// # Example
 ///
 /// ```moonbit
-/// let encoded = encode("hello world!")
+/// let encoded = Uri::encode("hello world!")
 /// inspect(encoded, content="hello%20world%21")
 /// ```
 ///
@@ -1053,7 +908,7 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
 /// # Returns
 ///
 /// The percent-encoded string
-pub fn encode(input : String) -> String {
+pub fn Uri::encode(input : String) -> String {
   let mut result = ""
   
   for i = 0; i < input.length(); i = i + 1 {
@@ -1082,7 +937,7 @@ pub fn encode(input : String) -> String {
 /// # Example
 ///
 /// ```moonbit
-/// let decoded = decode("hello%20world%21")
+/// let decoded = Uri::decode("hello%20world%21")
 /// inspect(decoded, content="hello world!")
 /// ```
 ///
@@ -1093,7 +948,7 @@ pub fn encode(input : String) -> String {
 /// # Returns
 ///
 /// The decoded string
-pub fn decode(input : String) -> String {
+pub fn Uri::decode(input : String) -> String {
   let mut result = ""
   let mut i = 0
   
@@ -1134,6 +989,236 @@ pub fn decode(input : String) -> String {
   }
   
   result
+}
+
+/// Parse query string into key-value pairs
+///
+/// # Example
+///
+/// ```moonbit
+/// let params = Uri::parse_query("name=John&age=30&city=New%20York")
+/// inspect(params.length(), content="3")
+/// ```
+///
+/// # Parameters
+///
+/// - `query_string`: The query string to parse
+///
+/// # Returns
+///
+/// Array of key-value pairs
+pub fn Uri::parse_query(query_string : String) -> Array[(String, String)] {
+  if query_string.length() == 0 {
+    return []
+  }
+  
+  let pairs = query_string.split("&").collect()
+  let result : Array[(String, String)] = []
+  
+  for pair in pairs {
+    let pair_str = pair.to_string()
+    if pair_str.contains("=") {
+      let parts = pair_str.split("=").collect()
+      if parts.length() >= 2 {
+        let key = Uri::decode(parts[0].to_string())
+        let value = Uri::decode(parts[1].to_string())
+        result.push((key, value))
+      } else {
+        // No equals sign, treat as key with empty value
+        result.push((Uri::decode(pair_str), ""))
+      }
+    } else {
+      // No equals sign, treat as key with empty value
+      result.push((Uri::decode(pair_str), ""))
+    }
+  }
+  
+  result
+}
+
+/// Build query string from key-value pairs
+///
+/// # Example
+///
+/// ```moonbit
+/// let query = Uri::build_query([("name", "John Doe"), ("age", "30")])
+/// inspect(query, content="name=John%20Doe&age=30")
+/// ```
+///
+/// # Parameters
+///
+/// - `pairs`: Array of key-value pairs
+///
+/// # Returns
+///
+/// Encoded query string
+pub fn Uri::build_query(pairs : Array[(String, String)]) -> String {
+  let parts : Array[String] = []
+  
+  for i = 0; i < pairs.length(); i = i + 1 {
+    let (key, value) = pairs[i]
+    let encoded_key = Uri::encode(key)
+    if value.length() == 0 {
+      parts.push(encoded_key)
+    } else {
+      let encoded_value = Uri::encode(value)
+      parts.push(encoded_key + "=" + encoded_value)
+    }
+  }
+  
+  parts.join("&")
+}
+
+/// Get path segments as an array
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = parse("/path/to/resource")
+/// let segments = uri.path_segments()
+/// // segments will contain ["path", "to", "resource"]
+/// ```
+///
+/// # Returns
+///
+/// Array of path segments (excluding empty segments from leading/trailing slashes)
+pub fn Uri::path_segments(self : Uri) -> Array[String] {
+  if self.path.length() == 0 {
+    return []
+  }
+  
+  let segments = self.path.split("/").collect()
+  let result : Array[String] = []
+  
+  for segment in segments {
+    let seg_str = segment.to_string()
+    if seg_str.length() > 0 {
+      result.push(Uri::decode(seg_str))
+    }
+  }
+  
+  result
+}
+
+/// Create a new URI with the specified path segments
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = empty().with_path_segments(["api", "v1", "users"])
+/// inspect(uri.path(), content="/api/v1/users")
+/// ```
+///
+/// # Parameters
+///
+/// - `segments`: Array of path segments
+///
+/// # Returns
+///
+/// New URI with the specified path segments
+pub fn Uri::with_path_segments(self : Uri, segments : Array[String]) -> Uri {
+  if segments.length() == 0 {
+    return { ..self, path: "" }
+  }
+  
+  let encoded_segments : Array[String] = []
+  for segment in segments {
+    encoded_segments.push(Uri::encode(segment.to_string()))
+  }
+  
+  let path = "/" + encoded_segments.join("/")
+  { ..self, path }
+}
+
+/// Parse userinfo into username and password components
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = parse("https://user:pass@example.com")
+/// match uri.userinfo_components() {
+///   Some((user, Some(pass))) => {
+///     inspect(user, content="user")
+///     inspect(pass, content="pass")
+///   }
+///   _ => ()
+/// }
+/// ```
+///
+/// # Returns
+///
+/// Optional tuple of (username, optional password)
+pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
+  match self.authority {
+    Some(auth) => {
+      match auth.userinfo {
+        Some(userinfo) => {
+          if userinfo.contains(":") {
+            let parts = userinfo.split(":").collect()
+            if parts.length() >= 2 {
+              let username = Uri::decode(parts[0].to_string())
+              let password = Uri::decode(parts[1].to_string())
+              Some((username, Some(password)))
+            } else {
+              let username = Uri::decode(userinfo)
+              Some((username, None))
+            }
+          } else {
+            let username = Uri::decode(userinfo)
+            Some((username, None))
+          }
+        }
+        None => None
+      }
+    }
+    None => None
+  }
+}
+
+/// Create a new URI with the specified username and password
+///
+/// # Example
+///
+/// ```moonbit
+/// let uri = empty()
+///   .with_host(Some("example.com"))
+///   .with_userinfo(Some("user"), Some("pass"))
+/// // Creates URI with encoded userinfo
+/// ```
+///
+/// # Parameters
+///
+/// - `username`: Optional username
+/// - `password`: Optional password
+///
+/// # Returns
+///
+/// New URI with the specified userinfo
+pub fn Uri::with_userinfo(self : Uri, username : String?, password : String?) -> Uri {
+  match username {
+    Some(user) => {
+      let userinfo = match password {
+        Some(pass) => Uri::encode(user) + ":" + Uri::encode(pass)
+        None => Uri::encode(user)
+      }
+      
+      let new_authority = match self.authority {
+        Some(auth) => Some({ ..auth, userinfo: Some(userinfo) })
+        None => Some({ userinfo: Some(userinfo), host: "", port: None })
+      }
+      
+      { ..self, authority: new_authority }
+    }
+    None => {
+      match self.authority {
+        Some(auth) => {
+          let new_authority = Some({ ..auth, userinfo: None })
+          { ..self, authority: new_authority }
+        }
+        None => self
+      }
+    }
+  }
 }
 
 /// Check if character is unreserved (doesn't need encoding)
@@ -1193,3 +1278,4 @@ fn int_to_hex(value : Int) -> String {
   
   result
 }
+

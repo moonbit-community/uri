@@ -32,7 +32,7 @@ Add this library to your MoonBit project by including it in your `moon.mod.json`
 ```moonbit
 test "quick_start_example" {
   // Parse a URI
-  let uri = @uri.of_string("https://example.com:8080/path?query=value#fragment")
+  let uri = @uri.parse("https://example.com:8080/path?query=value#fragment")
   inspect(uri.scheme(), content="Some(\"https\")")
   inspect(uri.host(), content="Some(\"example.com\")")
   inspect(uri.port(), content="Some(8080)")
@@ -46,7 +46,7 @@ test "quick_start_example" {
     .with_host(Some("api.example.com"))
     .with_path("/v1/users")
     .with_query(Some("limit=10&offset=0"))
-  inspect(@uri.to_string(built_uri), content="https://api.example.com/v1/users?limit=10&offset=0")
+  inspect(built_uri.to_string(), content="https://api.example.com/v1/users?limit=10&offset=0")
 }
 ```
 
@@ -85,18 +85,18 @@ Parse a URI string into a `Uri` structure.
 
 ```moonbit
 test "of_string_example" {
-  let uri = @uri.of_string("https://example.com/path")
+  let uri = @uri.parse("https://example.com/path")
   inspect(uri.host(), content="Some(\"example.com\")")
 }
 ```
 
-#### `to_string(uri: Uri) -> String`
+#### `Uri::to_string(self: Uri) -> String`
 Convert a `Uri` structure back to a string representation.
 
 ```moonbit
 test "to_string_example" {
-  let uri = @uri.of_string("https://example.com/path")
-  let uri_string = @uri.to_string(uri)
+  let uri = @uri.parse("https://example.com/path")
+  let uri_string = uri.to_string()
   inspect(uri_string, content="https://example.com/path")
 }
 ```
@@ -162,7 +162,7 @@ Normalize a URI by removing default ports and normalizing the path.
 
 ```moonbit
 test "normalize_example" {
-  let uri = @uri.of_string("https://example.com:443/path")
+  let uri = @uri.parse("https://example.com:443/path")
   let normalized = uri.normalize()
   // Default HTTPS port (443) should be removed
   inspect(normalized.port(), content="None")
@@ -175,50 +175,14 @@ Resolve a relative URI against a base URI.
 
 ```moonbit
 test "resolve_example" {
-  let base = @uri.of_string("https://example.com/dir/")
-  let relative = @uri.of_string("../other/file.html")
+  let base = @uri.parse("https://example.com/dir/")
+  let relative = @uri.parse("../other/file.html")
   let resolved = @uri.resolve(base, relative)
-  inspect(@uri.to_string(resolved), content="https://example.com/other/file.html")
+  inspect(resolved.to_string(), content="https://example.com/other/file.html")
 }
 ```
 
-### Query String Handling
 
-#### `parse_query(query_string: String) -> Array[(String, String)]`
-Parse a query string into key-value pairs.
-
-```moonbit
-test "parse_query_example" {
-  let pairs = @uri.parse_query("name=John&age=30&city=NYC")
-  // Returns [("name", "John"), ("age", "30"), ("city", "NYC")]
-  inspect(pairs.length(), content="3")
-  inspect(pairs[0], content="(\"name\", \"John\")")
-}
-```
-
-#### `build_query(pairs: Array[(String, String)]) -> String`
-Build a query string from key-value pairs.
-
-```moonbit
-test "build_query_example" {
-  let query = @uri.build_query([("search", "moonbit"), ("limit", "10")])
-  // Returns "search=moonbit&limit=10"
-  inspect(query, content="search=moonbit&limit=10")
-}
-```
-
-### URL Encoding
-
-#### `encode(input: String) -> String`
-URL encode a string (basic implementation).
-
-```moonbit
-test "encode_example" {
-  let encoded = @uri.encode("hello world!")
-  // Returns "hello%20world%21"
-  inspect(encoded, content="hello%20world%21")
-}
-```
 
 ## Examples
 
@@ -226,7 +190,7 @@ test "encode_example" {
 
 ```moonbit
 test "parse_http_uri" {
-  let uri = @uri.of_string("https://user:pass@example.com:8080/path?query=value#section")
+  let uri = @uri.parse("https://user:pass@example.com:8080/path?query=value#section")
   inspect(uri.scheme(), content="Some(\"https\")")
   inspect(uri.host(), content="Some(\"example.com\")")
   inspect(uri.port(), content="Some(8080)")
@@ -246,7 +210,7 @@ test "build_api_uri" {
     .with_path("/repos/owner/repo/issues")
     .with_query(Some("state=open&per_page=50"))
   
-  inspect(@uri.to_string(api_uri), content="https://api.github.com/repos/owner/repo/issues?state=open&per_page=50")
+  inspect(api_uri.to_string(), content="https://api.github.com/repos/owner/repo/issues?state=open&per_page=50")
 }
 ```
 
@@ -254,11 +218,11 @@ test "build_api_uri" {
 
 ```moonbit
 test "resolve_relative_uri" {
-  let base = @uri.of_string("https://example.com/docs/guide/")
-  let relative = @uri.of_string("../api/reference.html")
+  let base = @uri.parse("https://example.com/docs/guide/")
+  let relative = @uri.parse("../api/reference.html")
   
   let resolved = @uri.resolve(base, relative)
-  inspect(@uri.to_string(resolved), content="https://example.com/docs/api/reference.html")
+  inspect(resolved.to_string(), content="https://example.com/docs/api/reference.html")
 }
 ```
 
@@ -266,19 +230,18 @@ test "resolve_relative_uri" {
 
 ```moonbit
 test "query_parameters" {
-  let uri = @uri.of_string("https://search.example.com/?q=moonbit&lang=en&safe=on")
+  let uri = @uri.parse("https://search.example.com/?q=moonbit&lang=en&safe=on")
   
   match uri.query() {
     Some(query_str) => {
-      let params = @uri.parse_query(query_str)
-      inspect(params.length(), content="3")
-      inspect(params[0], content="(\"q\", \"moonbit\")")
-      inspect(params[1], content="(\"lang\", \"en\")")
-      inspect(params[2], content="(\"safe\", \"on\")")
+      inspect(query_str, content="q=moonbit&lang=en&safe=on")
       
-      // Rebuild query
-      let rebuilt = @uri.build_query(params)
-      inspect(rebuilt, content="q=moonbit&lang=en&safe=on")
+      // Use built-in query parameter methods
+      let q_param = uri.get_query_param("q")
+      inspect(q_param, content="Some(\"moonbit\")")
+      
+      let lang_param = uri.get_query_param("lang")
+      inspect(lang_param, content="Some(\"en\")")
     }
     None => inspect("Should have query", content="\"Should have query\"")
   }
@@ -289,7 +252,7 @@ test "query_parameters" {
 
 ```moonbit
 test "ipv6_uri" {
-  let uri = @uri.of_string("http://[2001:db8::1]:8080/path")
+  let uri = @uri.parse("http://[2001:db8::1]:8080/path")
   inspect(uri.scheme(), content="Some(\"http\")")
   inspect(uri.host(), content="Some(\"[2001:db8::1]\")")
   inspect(uri.port(), content="Some(8080)")
@@ -301,7 +264,7 @@ test "ipv6_uri" {
 
 ```moonbit
 test "uri_normalization" {
-  let uri = @uri.of_string("https://example.com:443/./path/../other/./file.html")
+  let uri = @uri.parse("https://example.com:443/./path/../other/./file.html")
   let normalized = uri.normalize()
   
   // Default HTTPS port (443) should be removed
@@ -309,7 +272,7 @@ test "uri_normalization" {
   // Path should be normalized
   inspect(normalized.path(), content="/other/file.html")
   
-  inspect(@uri.to_string(normalized), content="https://example.com/other/file.html")
+  inspect(normalized.to_string(), content="https://example.com/other/file.html")
 }
 ```
 
@@ -337,7 +300,7 @@ The library uses MoonBit's `Result` type for error handling. All parsing operati
 ```moonbit
 test "error_handling_example" {
   // Test with a valid but unusual URI
-  let uri = @uri.of_string("custom://example.com")
+  let uri = @uri.parse("custom://example.com")
   inspect(uri.scheme(), content="Some(\"custom\")")
   inspect(uri.host(), content="Some(\"example.com\")")
 }

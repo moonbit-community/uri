@@ -2,29 +2,11 @@
 package "bobzhang/uri"
 
 // Values
-fn build_query(Array[(String, String)]) -> String
-
-fn debug_string(Uri) -> String
-
-fn decode(String) -> String
-
-fn default_port(String) -> Int?
-
 fn empty() -> Uri
 
-fn encode(String) -> String
-
-fn example_parse() -> Unit
-
-fn of_string(String) -> Uri raise UriError
-
-fn parse_query(String) -> Array[(String, String)]
-
-fn pretty_string(Uri) -> String
+fn parse(String) -> Uri raise UriError
 
 fn resolve(Uri, Uri) -> Uri raise UriError
-
-fn to_string(Uri) -> String
 
 // Errors
 pub suberror UriError {
@@ -53,25 +35,42 @@ pub struct Uri {
   query : String?
   fragment : String?
 }
-fn Uri::effective_port(Self) -> Int?
-fn Uri::fragment(Self) -> String?
-fn Uri::get_query_param(Self, String) -> String?
+// Core accessors
+fn Uri::scheme(Self) -> String?
 fn Uri::host(Self) -> String?
+fn Uri::port(Self) -> Int?
+fn Uri::path(Self) -> String
+fn Uri::query(Self) -> String?
+fn Uri::fragment(Self) -> String?
+// Builders (immutable)
+fn Uri::with_scheme(Self, String?) -> Self
+fn Uri::with_host(Self, String?) -> Self
+fn Uri::with_port(Self, Int?) -> Self
+fn Uri::with_path(Self, String) -> Self
+fn Uri::with_query(Self, String?) -> Self
+fn Uri::with_fragment(Self, String?) -> Self
+// Utility methods
 fn Uri::is_absolute(Self) -> Bool
 fn Uri::is_relative(Self) -> Bool
 fn Uri::normalize(Self) -> Self
-fn Uri::path(Self) -> String
-fn Uri::port(Self) -> Int?
-fn Uri::query(Self) -> String?
-fn Uri::remove_query_param(Self, String) -> Self
-fn Uri::scheme(Self) -> String?
-fn Uri::with_fragment(Self, String?) -> Self
-fn Uri::with_host(Self, String?) -> Self
-fn Uri::with_path(Self, String) -> Self
-fn Uri::with_port(Self, Int?) -> Self
-fn Uri::with_query(Self, String?) -> Self
+fn Uri::effective_port(Self) -> Int?
+fn Uri::to_string(Self) -> String
+// Query parameter helpers
+fn Uri::get_query_param(Self, String) -> String?
 fn Uri::with_query_param(Self, String, String) -> Self
-fn Uri::with_scheme(Self, String?) -> Self
+fn Uri::remove_query_param(Self, String) -> Self
+// Encoding/decoding utilities
+fn Uri::encode(String) -> String
+fn Uri::decode(String) -> String
+// Query string manipulation
+fn Uri::parse_query(String) -> Array[(String, String)]
+fn Uri::build_query(Array[(String, String)]) -> String
+// Path segment manipulation
+fn Uri::path_segments(Self) -> Array[String]
+fn Uri::with_path_segments(Self, Array[String]) -> Self
+// Userinfo handling
+fn Uri::userinfo_components(Self) -> (String, String?)?
+fn Uri::with_userinfo(Self, String?, String?) -> Self
 impl Show for Uri
 impl ToJson for Uri
 

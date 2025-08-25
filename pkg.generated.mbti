@@ -1,0 +1,81 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/uri"
+
+// Values
+fn build_query(Array[(String, String)]) -> String
+
+fn debug_string(Uri) -> String
+
+fn decode(String) -> String
+
+fn default_port(String) -> Int?
+
+fn empty() -> Uri
+
+fn encode(String) -> String
+
+fn example_parse() -> Unit
+
+fn of_string(String) -> Uri raise UriError
+
+fn parse_query(String) -> Array[(String, String)]
+
+fn pretty_string(Uri) -> String
+
+fn resolve(Uri, Uri) -> Uri raise UriError
+
+fn to_string(Uri) -> String
+
+// Errors
+pub suberror UriError {
+  InvalidScheme(String)
+  InvalidAuthority(String)
+  InvalidPath(String)
+  InvalidQuery(String)
+  InvalidFragment(String)
+  InvalidPort(String)
+  EmptyUri
+}
+impl ToJson for UriError
+
+// Types and methods
+pub struct Authority {
+  userinfo : String?
+  host : String
+  port : Int?
+}
+impl ToJson for Authority
+
+pub struct Uri {
+  scheme : String?
+  authority : Authority?
+  path : String
+  query : String?
+  fragment : String?
+}
+fn Uri::effective_port(Self) -> Int?
+fn Uri::fragment(Self) -> String?
+fn Uri::get_query_param(Self, String) -> String?
+fn Uri::host(Self) -> String?
+fn Uri::is_absolute(Self) -> Bool
+fn Uri::is_relative(Self) -> Bool
+fn Uri::normalize(Self) -> Self
+fn Uri::path(Self) -> String
+fn Uri::port(Self) -> Int?
+fn Uri::query(Self) -> String?
+fn Uri::remove_query_param(Self, String) -> Self
+fn Uri::scheme(Self) -> String?
+fn Uri::with_fragment(Self, String?) -> Self
+fn Uri::with_host(Self, String?) -> Self
+fn Uri::with_path(Self, String) -> Self
+fn Uri::with_port(Self, Int?) -> Self
+fn Uri::with_query(Self, String?) -> Self
+fn Uri::with_query_param(Self, String, String) -> Self
+fn Uri::with_scheme(Self, String?) -> Self
+impl Show for Uri
+impl ToJson for Uri
+
+// Type aliases
+
+// Traits
+

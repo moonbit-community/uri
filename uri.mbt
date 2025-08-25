@@ -41,7 +41,7 @@ pub suberror UriError {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = empty()
+/// let uri = @uri.empty()
 /// inspect(uri.path(), content="")
 /// inspect(uri.scheme(), content="None")
 /// ```
@@ -64,7 +64,7 @@ pub fn empty() -> Uri {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://user:pass@example.com:8080/path?query=value#fragment")
+/// let uri = @uri.parse("https://user:pass@example.com:8080/path?query=value#fragment")
 /// inspect(uri.scheme(), content="Some(\"https\")")
 /// inspect(uri.host(), content="Some(\"example.com\")")
 /// inspect(uri.port(), content="Some(8080)")
@@ -246,7 +246,7 @@ pub impl Show for Uri with output(self, logger) {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://example.com")
+/// let uri = @uri.parse("https://example.com")
 /// inspect(uri.scheme(), content="Some(\"https\")")
 /// ```
 ///
@@ -262,7 +262,7 @@ pub fn Uri::scheme(self : Uri) -> String? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://example.com:8080/path")
+/// let uri = @uri.parse("https://example.com:8080/path")
 /// inspect(uri.host(), content="Some(\"example.com\")")
 /// ```
 ///
@@ -284,7 +284,7 @@ pub fn Uri::host(self : Uri) -> String? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://example.com:8080/path")
+/// let uri = @uri.parse("https://example.com:8080/path")
 /// inspect(uri.port(), content="Some(8080)")
 /// ```
 ///
@@ -303,7 +303,7 @@ pub fn Uri::port(self : Uri) -> Int? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://example.com/path/to/resource")
+/// let uri = @uri.parse("https://example.com/path/to/resource")
 /// inspect(uri.path(), content="/path/to/resource")
 /// ```
 ///
@@ -319,7 +319,7 @@ pub fn Uri::path(self : Uri) -> String {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://example.com/path?key=value&foo=bar")
+/// let uri = @uri.parse("https://example.com/path?key=value&foo=bar")
 /// inspect(uri.query(), content="Some(\"key=value&foo=bar\")")
 /// ```
 ///
@@ -897,7 +897,7 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
 /// # Example
 ///
 /// ```moonbit
-/// let encoded = Uri::encode("hello world!")
+/// let encoded = @uri.Uri::encode("hello world!")
 /// inspect(encoded, content="hello%20world%21")
 /// ```
 ///
@@ -937,7 +937,7 @@ pub fn Uri::encode(input : String) -> String {
 /// # Example
 ///
 /// ```moonbit
-/// let decoded = Uri::decode("hello%20world%21")
+/// let decoded = @uri.Uri::decode("hello%20world%21")
 /// inspect(decoded, content="hello world!")
 /// ```
 ///
@@ -996,7 +996,7 @@ pub fn Uri::decode(input : String) -> String {
 /// # Example
 ///
 /// ```moonbit
-/// let params = Uri::parse_query("name=John&age=30&city=New%20York")
+/// let params = @uri.Uri::parse_query("name=John&age=30&city=New%20York")
 /// inspect(params.length(), content="3")
 /// ```
 ///
@@ -1041,7 +1041,7 @@ pub fn Uri::parse_query(query_string : String) -> Array[(String, String)] {
 /// # Example
 ///
 /// ```moonbit
-/// let query = Uri::build_query([("name", "John Doe"), ("age", "30")])
+/// let query = @uri.Uri::build_query([("name", "John Doe"), ("age", "30")])
 /// inspect(query, content="name=John%20Doe&age=30")
 /// ```
 ///
@@ -1074,7 +1074,7 @@ pub fn Uri::build_query(pairs : Array[(String, String)]) -> String {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("/path/to/resource")
+/// let uri = @uri.parse("/path/to/resource")
 /// let _segments = uri.path_segments()
 /// // _segments will contain ["path", "to", "resource"]
 /// ```
@@ -1105,7 +1105,7 @@ pub fn Uri::path_segments(self : Uri) -> Array[String] {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = empty().with_path_segments(["api", "v1", "users"])
+/// let uri = @uri.empty().with_path_segments(["api", "v1", "users"])
 /// inspect(uri.path(), content="/api/v1/users")
 /// ```
 ///
@@ -1135,7 +1135,7 @@ pub fn Uri::with_path_segments(self : Uri, segments : Array[String]) -> Uri {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = parse("https://user:pass@example.com")
+/// let uri = @uri.parse("https://user:pass@example.com")
 /// match uri.userinfo_components() {
 ///   Some((user, Some(pass))) => {
 ///     inspect(user, content="user")
@@ -1180,7 +1180,7 @@ pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
 /// # Example
 ///
 /// ```moonbit
-/// let _uri = empty()
+/// let _uri = @uri.empty()
 ///   .with_host(Some("example.com"))
 ///   .with_userinfo(Some("user"), Some("pass"))
 /// // Creates URI with encoded userinfo

@@ -1,7 +1,7 @@
 /// Test basic URI parsing functionality
 test "basic_uri_parsing" {
   // Test simple HTTP URI
-  let uri = parse("https://example.com/path")
+  let uri = @uri.parse("https://example.com/path")
   @json.inspect(uri, content={
     "scheme": "https",
     "authority": { "host": "example.com" },
@@ -11,13 +11,13 @@ test "basic_uri_parsing" {
 
 /// Test empty URI
 test "empty_uri" {
-  let empty_uri = empty()
+  let empty_uri = @uri.empty()
   @json.inspect(empty_uri, content=({"path":""}))
 }
 
 /// Test URI building
 test "uri_building" {
-  let uri = empty()
+  let uri = @uri.empty()
     .with_scheme(Some("https"))
     .with_host(Some("api.example.com"))
     .with_path("/v1/users")
@@ -28,7 +28,7 @@ test "uri_building" {
 
 /// Test URI serialization
 test "uri_serialization" {
-  let uri = empty()
+  let uri = @uri.empty()
     .with_scheme(Some("http"))
     .with_host(Some("localhost"))
     .with_path("/test")
@@ -48,7 +48,7 @@ test "uri_serialization" {
 /// Test path-only URI
 test "path_only_uri" {
   try {
-    let uri = parse("/path/to/resource")
+    let uri = @uri.parse("/path/to/resource")
     if uri.scheme() != None {
       fail("Expected no scheme")
     }
@@ -66,18 +66,18 @@ test "path_only_uri" {
 /// Test empty URI error
 test "empty_uri_error" {
   try {
-    let _ = parse("")
+    let _ = @uri.parse("")
     fail("Expected EmptyUri error")
   } catch {
-    UriError::EmptyUri => () // Expected
+    @uri.UriError::EmptyUri => () // Expected
     _ => fail("Expected EmptyUri error")
   }
 }
 
 /// Test URI absolute/relative checks
 test "uri_absolute_relative" {
-  let absolute_uri = empty().with_scheme(Some("https"))
-  let relative_uri = empty().with_path("/relative")
+  let absolute_uri = @uri.empty().with_scheme(Some("https"))
+  let relative_uri = @uri.empty().with_path("/relative")
   
   if not(absolute_uri.is_absolute()) {
     fail("Expected URI with scheme to be absolute")
@@ -96,10 +96,10 @@ test "uri_absolute_relative" {
 /// Test invalid scheme
 test "invalid_scheme" {
   try {
-    let _ = parse("123invalid://example.com")
+    let _ = @uri.parse("123invalid://example.com")
     fail("Expected InvalidScheme error")
   } catch {
-    UriError::InvalidScheme(scheme) => {
+    @uri.UriError::InvalidScheme(scheme) => {
       if scheme != "123invalid" {
         fail("Expected scheme '123invalid', got: " + scheme)
       }
@@ -111,10 +111,10 @@ test "invalid_scheme" {
 /// Test invalid port
 test "invalid_port" {
   try {
-    let _ = parse("http://example.com:abc/path")
+    let _ = @uri.parse("http://example.com:abc/path")
     fail("Expected InvalidPort error")
   } catch {
-    UriError::InvalidPort(port) => {
+    @uri.UriError::InvalidPort(port) => {
       if port != "abc" {
         fail("Expected port 'abc', got: " + port)
       }
@@ -126,10 +126,10 @@ test "invalid_port" {
 /// Test port out of range
 test "port_out_of_range" {
   try {
-    let _ = parse("http://example.com:99999/path")
+    let _ = @uri.parse("http://example.com:99999/path")
     fail("Expected error for port out of range")
   } catch {
-    UriError::InvalidPort(_) => () // Expected
+    @uri.UriError::InvalidPort(_) => () // Expected
     _ => fail("Expected InvalidPort error")
   }
 }
@@ -137,10 +137,10 @@ test "port_out_of_range" {
 /// Test invalid path with spaces
 test "invalid_path_spaces" {
   try {
-    let _ = parse("http://example.com/path with spaces")
+    let _ = @uri.parse("http://example.com/path with spaces")
     fail("Expected error for path with unescaped spaces")
   } catch {
-    UriError::InvalidPath(_) => () // Expected
+    @uri.UriError::InvalidPath(_) => () // Expected
     _ => fail("Expected InvalidPath error")
   }
 }
@@ -148,10 +148,10 @@ test "invalid_path_spaces" {
 /// Test invalid query with spaces
 test "invalid_query_spaces" {
   try {
-    let _ = parse("http://example.com/path?query with spaces")
+    let _ = @uri.parse("http://example.com/path?query with spaces")
     fail("Expected error for query with unescaped spaces")
   } catch {
-    UriError::InvalidQuery(_) => () // Expected
+    @uri.UriError::InvalidQuery(_) => () // Expected
     _ => fail("Expected InvalidQuery error")
   }
 }
@@ -159,10 +159,10 @@ test "invalid_query_spaces" {
 /// Test invalid fragment with spaces
 test "invalid_fragment_spaces" {
   try {
-    let _ = parse("http://example.com/path#fragment with spaces")
+    let _ = @uri.parse("http://example.com/path#fragment with spaces")
     fail("Expected error for fragment with unescaped spaces")
   } catch {
-    UriError::InvalidFragment(_) => () // Expected
+    @uri.UriError::InvalidFragment(_) => () // Expected
     _ => fail("Expected InvalidFragment error")
   }
 }
@@ -170,23 +170,23 @@ test "invalid_fragment_spaces" {
 /// Test URI normalization
 test "uri_normalization" {
   // Test default port removal
-  let uri1 = parse("https://example.com:443/path")
+  let uri1 = @uri.parse("https://example.com:443/path")
   let normalized1 = uri1.normalize()
   @json.inspect(normalized1, content=({"scheme":"https","authority":{"host":"example.com"},"path":"/path"}))
   
   // Test path normalization
-  let uri2 = parse("http://example.com/./path/../other/./file.html")
+  let uri2 = @uri.parse("http://example.com/./path/../other/./file.html")
   let normalized2 = uri2.normalize()
   @json.inspect(normalized2.path(), content=("/other/file.html"))
 }
 
 /// Test URI resolution
 test "uri_resolution" {
-  let base = parse("https://example.com/docs/guide/")
-  let relative = parse("../api/reference.html")
+  let base = @uri.parse("https://example.com/docs/guide/")
+  let relative = @uri.parse("../api/reference.html")
   
   try {
-    let resolved = resolve(base, relative)
+    let resolved = @uri.resolve(base, relative)
     let expected = "https://example.com/docs/api/reference.html"
     let actual = resolved.to_string()
     if actual != expected {
@@ -197,9 +197,9 @@ test "uri_resolution" {
   }
   
   // Test absolute relative URI
-  let absolute_relative = parse("https://other.com/path")
+  let absolute_relative = @uri.parse("https://other.com/path")
   try {
-    let resolved = resolve(base, absolute_relative)
+    let resolved = @uri.resolve(base, absolute_relative)
     if resolved.to_string() != "https://other.com/path" {
       fail("Expected absolute URI to be returned as-is")
     }
@@ -214,7 +214,7 @@ test "uri_resolution" {
 
 /// Test get query parameter
 test "get_query_parameter" {
-  let uri = parse("https://example.com/search?q=moonbit&lang=en&safe=on")
+  let uri = @uri.parse("https://example.com/search?q=moonbit&lang=en&safe=on")
   
   let param_q = uri.get_query_param("q")
   @json.inspect(param_q, content=(["moonbit"]))
@@ -226,7 +226,7 @@ test "get_query_parameter" {
 
 /// Test with query parameter
 test "with_query_parameter" {
-  let uri = parse("https://example.com/search?q=test")
+  let uri = @uri.parse("https://example.com/search?q=test")
   
   // Update existing parameter
   let updated = uri.with_query_param("q", "moonbit")
@@ -241,7 +241,7 @@ test "with_query_parameter" {
 
 /// Test remove query parameter
 test "remove_query_parameter" {
-  let uri = parse("https://example.com/search?q=test&lang=en&safe=on")
+  let uri = @uri.parse("https://example.com/search?q=test&lang=en&safe=on")
   
   let without_lang = uri.remove_query_param("lang")
   match without_lang.get_query_param("lang") {
@@ -266,7 +266,7 @@ test "remove_query_parameter" {
 
 /// Test complex URI with userinfo
 test "complex_uri_with_userinfo" {
-  let uri = parse("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results")
+  let uri = @uri.parse("https://user:pass@api.example.com:8080/v1/users?limit=10&offset=0#results")
   @json.inspect(uri, content={
     "scheme": "https",
     "authority": {
@@ -285,7 +285,7 @@ test "complex_uri_with_userinfo" {
 /// Test effective port
 test "effective_port" {
   // Explicit port
-  let uri1 = parse("https://example.com:8080/path")
+  let uri1 = @uri.parse("https://example.com:8080/path")
   match uri1.effective_port() {
     Some(port_val) => {
       if port_val != 8080 {
@@ -296,7 +296,7 @@ test "effective_port" {
   }
   
   // Default port
-  let uri2 = parse("https://example.com/path")
+  let uri2 = @uri.parse("https://example.com/path")
   match uri2.effective_port() {
     Some(port_val) => {
       if port_val != 443 {
@@ -307,7 +307,7 @@ test "effective_port" {
   }
   
   // No authority
-  let uri3 = parse("/path")
+  let uri3 = @uri.parse("/path")
   match uri3.effective_port() {
     Some(_) => fail("Expected no port for URI without authority")
     None => () // Expected
@@ -316,7 +316,7 @@ test "effective_port" {
 
 /// Test Show trait implementation
 test "show_trait_implementation" {
-  let uri = parse("https://user:pass@example.com:8080/path?query=value#fragment")
+  let uri = @uri.parse("https://user:pass@example.com:8080/path?query=value#fragment")
   
   // Test that Show trait works by checking the string representation
   let direct_output = uri.to_string() // Direct method call

@@ -6,5 +6,6 @@
   "license": "Apache-2.0",
   "keywords": ["uri", "url", "rfc3986", "parsing", "web"],
   "description": "RFC3986 compliant URI parsing library for MoonBit",
+  "alert-list": "+test_import_all"
 
 }

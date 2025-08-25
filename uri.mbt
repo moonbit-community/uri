@@ -1075,8 +1075,8 @@ pub fn Uri::build_query(pairs : Array[(String, String)]) -> String {
 ///
 /// ```moonbit
 /// let uri = parse("/path/to/resource")
-/// let segments = uri.path_segments()
-/// // segments will contain ["path", "to", "resource"]
+/// let _segments = uri.path_segments()
+/// // _segments will contain ["path", "to", "resource"]
 /// ```
 ///
 /// # Returns
@@ -1180,7 +1180,7 @@ pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
 /// # Example
 ///
 /// ```moonbit
-/// let uri = empty()
+/// let _uri = empty()
 ///   .with_host(Some("example.com"))
 ///   .with_userinfo(Some("user"), Some("pass"))
 /// // Creates URI with encoded userinfo

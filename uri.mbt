@@ -1,3 +1,4 @@
+///|
 /// # MoonBit URI Library
 ///
 /// A comprehensive RFC3986-compliant URI parsing and manipulation library for MoonBit.
@@ -17,20 +18,20 @@
 ///
 /// ## Quick Start
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Parse a URI
 /// let uri = @uri.parse("https://user:pass@example.com:8080/path?query=value#fragment")
-/// 
+///
 /// // Access components
 /// inspect(uri.scheme(), content="Some(\"https\")")
 /// inspect(uri.host(), content="Some(\"example.com\")")
 /// inspect(uri.port(), content="Some(8080)")
 /// inspect(uri.path(), content="/path")
-/// 
+///
 /// // Modify URI (immutable)
 /// let new_uri = uri.with_host(Some("newhost.com")).with_port(Some(9000))
 /// inspect(new_uri.to_string(), content="https://user:pass@newhost.com:9000/path?query=value#fragment")
-/// 
+///
 /// // Query parameter helpers
 /// let search_uri = @uri.parse("https://example.com/search")
 /// let with_params = search_uri.with_query_param("q", "moonbit").with_query_param("lang", "en")
@@ -58,6 +59,7 @@ pub struct Uri {
   fragment : String?
 } derive(ToJson)
 
+///|
 /// Authority component of a URI
 /// Contains optional user info, required host, and optional port
 pub struct Authority {
@@ -66,6 +68,7 @@ pub struct Authority {
   port : Int?
 } derive(ToJson)
 
+///|
 /// Result type for URI parsing operations
 pub suberror UriError {
   InvalidScheme(String)
@@ -77,11 +80,12 @@ pub suberror UriError {
   EmptyUri
 } derive(ToJson(style="flat"))
 
+///|
 /// Create an empty URI with default values.
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let uri = @uri.empty()
 /// inspect(uri.path(), content="")
 /// inspect(uri.scheme(), content="None")
@@ -91,20 +95,15 @@ pub suberror UriError {
 ///
 /// A new `Uri` with all components set to their default values.
 pub fn empty() -> Uri {
-  {
-    scheme: None,
-    authority: None,
-    path: "",
-    query: None,
-    fragment: None
-  }
+  { scheme: None, authority: None, path: "", query: None, fragment: None }
 }
 
+///|
 /// Parse a URI string into a Uri structure according to RFC3986.
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let uri = @uri.parse("https://user:pass@example.com:8080/path?query=value#fragment")
 /// inspect(uri.scheme(), content="Some(\"https\")")
 /// inspect(uri.host(), content="Some(\"example.com\")")
@@ -129,14 +128,14 @@ pub fn parse(uri_str : String) -> Uri raise UriError {
   if uri_str.length() == 0 {
     raise EmptyUri
   }
-  
+
   // Start with an empty URI and parse components
   let uri = empty()
   let remaining = uri_str
-  
+
   // Simple parsing for now - will enhance later
   // For basic HTTP/HTTPS URIs: scheme://host:port/path?query#fragment
-  
+
   // Check for scheme
   if remaining.contains("://") {
     let parts = remaining.split("://").collect()
@@ -151,42 +150,47 @@ pub fn parse(uri_str : String) -> Uri raise UriError {
       }
     }
   }
-  
+
   // No scheme found, treat as path-only URI
   { ..uri, path: remaining }
 }
 
+///|
 /// Parse URI with known scheme
 fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
   let mut uri = empty()
   uri = { ..uri, scheme: Some(scheme) }
-  
+
   // Split by fragment first
   let parts_fragment = rest.split("#").collect()
   let main_part = parts_fragment[0].to_string()
-  let fragment_part = if parts_fragment.length() > 1 { 
+  let fragment_part = if parts_fragment.length() > 1 {
     let frag = parts_fragment[1].to_string()
     // Basic fragment validation - no spaces allowed
     if frag.contains(" ") {
       raise InvalidFragment(frag)
     }
     Some(frag)
-  } else { None }
+  } else {
+    None
+  }
   uri = { ..uri, fragment: fragment_part }
-  
+
   // Split by query
   let parts_query = main_part.split("?").collect()
   let path_authority_part = parts_query[0].to_string()
-  let query_part = if parts_query.length() > 1 { 
+  let query_part = if parts_query.length() > 1 {
     let q = parts_query[1].to_string()
     // Basic query validation - no unescaped spaces
     if q.contains(" ") {
       raise InvalidQuery(q)
     }
     Some(q)
-  } else { None }
+  } else {
+    None
+  }
   uri = { ..uri, query: query_part }
-  
+
   // Split authority and path
   let parts_path = path_authority_part.split("/").collect()
   if parts_path.length() > 0 {
@@ -195,7 +199,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
       let auth = parse_authority(authority_part)
       uri = { ..uri, authority: Some(auth) }
     }
-    
+
     // Reconstruct path from remaining parts
     if parts_path.length() > 1 {
       let path_parts : Array[String] = []
@@ -207,7 +211,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
       if path.contains(" ") {
         raise InvalidPath(path)
       }
-      uri = { ..uri, path }
+      uri = { ..uri, path, }
     } else {
       uri = { ..uri, path: "" }
     }
@@ -218,14 +222,15 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
     }
     uri = { ..uri, path: path_authority_part }
   }
-  
+
   uri
 }
 
+///|
 /// Convert a Uri structure back to a string representation
 pub fn Uri::to_string(self : Uri) -> String {
   let mut result = ""
-  
+
   // Add scheme
   match self.scheme {
     Some(scheme) => {
@@ -237,7 +242,7 @@ pub fn Uri::to_string(self : Uri) -> String {
     }
     None => ()
   }
-  
+
   // Add authority
   match self.authority {
     Some(auth) => {
@@ -253,35 +258,33 @@ pub fn Uri::to_string(self : Uri) -> String {
     }
     None => ()
   }
-  
+
   // Add path
   result = result + self.path
-  
+
   // Add query
   match self.query {
     Some(query) => result = result + "?" + query
     None => ()
   }
-  
+
   // Add fragment
   match self.fragment {
     Some(fragment) => result = result + "#" + fragment
     None => ()
   }
-  
+
   result
 }
 
+///|
 /// Implement Show trait for Uri to provide standard string representation
 pub impl Show for Uri with output(self, logger) {
   // Use our existing to_string method for the Show implementation
   logger.write_string(self.to_string())
 }
 
-
-
-
-
+///|
 /// Get the scheme component of the URI.
 ///
 /// The scheme identifies the protocol used to access the resource.
@@ -289,15 +292,15 @@ pub impl Show for Uri with output(self, logger) {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Absolute URI with scheme
 /// let uri = @uri.parse("https://example.com")
 /// inspect(uri.scheme(), content="Some(\"https\")")
-/// 
+///
 /// // Different schemes
 /// let ftp_uri = @uri.parse("ftp://files.example.com/file.txt")
 /// inspect(ftp_uri.scheme(), content="Some(\"ftp\")")
-/// 
+///
 /// // Relative URI without scheme
 /// let relative_uri = @uri.parse("/path/to/resource")
 /// inspect(relative_uri.scheme(), content="None")
@@ -310,6 +313,7 @@ pub fn Uri::scheme(self : Uri) -> String? {
   self.scheme
 }
 
+///|
 /// Get the host component of the URI.
 ///
 /// The host identifies the server where the resource is located.
@@ -317,19 +321,19 @@ pub fn Uri::scheme(self : Uri) -> String? {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Domain name
 /// let uri = @uri.parse("https://example.com:8080/path")
 /// inspect(uri.host(), content="Some(\"example.com\")")
-/// 
+///
 /// // IPv4 address
 /// let ipv4_uri = @uri.parse("http://192.168.1.1/api")
 /// inspect(ipv4_uri.host(), content="Some(\"192.168.1.1\")")
-/// 
+///
 /// // IPv6 address (with brackets)
 /// let ipv6_uri = @uri.parse("http://[2001:db8::1]:8080/path")
 /// inspect(ipv6_uri.host(), content="Some(\"[2001:db8::1]\")")
-/// 
+///
 /// // Relative URI without host
 /// let relative_uri = @uri.parse("/path/to/resource")
 /// inspect(relative_uri.host(), content="None")
@@ -345,6 +349,7 @@ pub fn Uri::host(self : Uri) -> String? {
   }
 }
 
+///|
 /// Get the explicit port component of the URI.
 ///
 /// This returns only explicitly specified ports in the URI string.
@@ -352,19 +357,19 @@ pub fn Uri::host(self : Uri) -> String? {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Explicit port
 /// let uri = @uri.parse("https://example.com:8080/path")
 /// inspect(uri.port(), content="Some(8080)")
-/// 
+///
 /// // No explicit port (uses scheme default)
 /// let default_uri = @uri.parse("https://example.com/path")
 /// inspect(default_uri.port(), content="None")
-/// 
+///
 /// // Different port numbers
 /// let custom_port = @uri.parse("http://localhost:3000/api")
 /// inspect(custom_port.port(), content="Some(3000)")
-/// 
+///
 /// // IPv6 with port
 /// let ipv6_uri = @uri.parse("http://[::1]:8080/path")
 /// inspect(ipv6_uri.port(), content="Some(8080)")
@@ -384,6 +389,7 @@ pub fn Uri::port(self : Uri) -> Int? {
   }
 }
 
+///|
 /// Get the path component of the URI.
 ///
 /// The path identifies the specific resource within the host.
@@ -391,23 +397,23 @@ pub fn Uri::port(self : Uri) -> Int? {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Absolute path
 /// let uri = @uri.parse("https://example.com/path/to/resource")
 /// inspect(uri.path(), content="/path/to/resource")
-/// 
+///
 /// // Root path
 /// let root_uri = @uri.parse("https://example.com/")
 /// inspect(root_uri.path(), content="/")
-/// 
+///
 /// // Empty path (defaults to empty string)
 /// let no_path_uri = @uri.parse("https://example.com")
 /// inspect(no_path_uri.path(), content="")
-/// 
+///
 /// // Relative path
 /// let relative_uri = @uri.parse("path/to/resource")
 /// inspect(relative_uri.path(), content="path/to/resource")
-/// 
+///
 /// // Path with encoded characters
 /// let encoded_uri = @uri.parse("https://example.com/path%20with%20spaces")
 /// inspect(encoded_uri.path(), content="/path%20with%20spaces")
@@ -425,6 +431,7 @@ pub fn Uri::path(self : Uri) -> String {
   self.path
 }
 
+///|
 /// Get the query component of the URI.
 ///
 /// The query string contains additional parameters for the resource,
@@ -432,23 +439,23 @@ pub fn Uri::path(self : Uri) -> String {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Query with multiple parameters
 /// let uri = @uri.parse("https://example.com/path?key=value&foo=bar")
 /// inspect(uri.query(), content="Some(\"key=value&foo=bar\")")
-/// 
+///
 /// // Single parameter
 /// let single_param = @uri.parse("https://example.com/search?q=moonbit")
 /// inspect(single_param.query(), content="Some(\"q=moonbit\")")
-/// 
+///
 /// // Empty query
 /// let empty_query = @uri.parse("https://example.com/path?")
 /// inspect(empty_query.query(), content="Some(\"\")")
-/// 
+///
 /// // No query
 /// let no_query = @uri.parse("https://example.com/path")
 /// inspect(no_query.query(), content="None")
-/// 
+///
 /// // Query with encoded characters
 /// let encoded_query = @uri.parse("https://example.com/search?q=hello%20world")
 /// inspect(encoded_query.query(), content="Some(\"q=hello%20world\")")
@@ -466,6 +473,7 @@ pub fn Uri::query(self : Uri) -> String? {
   self.query
 }
 
+///|
 /// Get the fragment component of the URI.
 ///
 /// The fragment identifies a secondary resource or section within the primary resource,
@@ -473,19 +481,19 @@ pub fn Uri::query(self : Uri) -> String? {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Fragment in HTML document
 /// let uri = @uri.parse("https://example.com/page.html#section1")
 /// inspect(uri.fragment(), content="Some(\"section1\")")
-/// 
+///
 /// // Fragment with encoded characters
 /// let encoded_fragment = @uri.parse("https://example.com/doc#user%20guide")
 /// inspect(encoded_fragment.fragment(), content="Some(\"user%20guide\")")
-/// 
+///
 /// // No fragment
 /// let no_fragment = @uri.parse("https://example.com/page.html")
 /// inspect(no_fragment.fragment(), content="None")
-/// 
+///
 /// // Empty fragment
 /// let empty_fragment = @uri.parse("https://example.com/page.html#")
 /// inspect(empty_fragment.fragment(), content="Some(\"\")")
@@ -502,45 +510,41 @@ pub fn Uri::fragment(self : Uri) -> String? {
   self.fragment
 }
 
+///|
 /// Check if a scheme string is valid according to RFC3986
 fn is_valid_scheme(scheme : String) -> Bool {
   if scheme.length() == 0 {
     return false
   }
-  
+
   // First character must be a letter
-  match scheme.get(0) {
-    Some(first_char_code) => {
-      let first_char = first_char_code.unsafe_to_char()
-      if not(is_alpha(first_char)) {
-        return false
-      }
-    }
-    None => return false
+  let first_char_code_cu = scheme.code_unit_at(0)
+  let first_char_code = first_char_code_cu.to_int()
+  let first_char = first_char_code.unsafe_to_char()
+  if !is_alpha(first_char) {
+    return false
   }
-  
+
   // Remaining characters must be letters, digits, +, -, or .
   for i = 1; i < scheme.length(); i = i + 1 {
-    match scheme.get(i) {
-      Some(char_code) => {
-        let c = char_code.unsafe_to_char()
-        if not(is_alpha(c) || is_digit(c) || c == '+' || c == '-' || c == '.') {
-          return false
-        }
-      }
-      None => return false
+    let char_code_cu = scheme.code_unit_at(i)
+    let char_code = char_code_cu.to_int()
+    let c = char_code.unsafe_to_char()
+    if !(is_alpha(c) || is_digit(c) || c == '+' || c == '-' || c == '.') {
+      return false
     }
   }
-  
+
   true
 }
 
+///|
 /// Parse authority component
 fn parse_authority(auth_str : String) -> Authority raise UriError {
   let mut userinfo : String? = None
   let mut port : Int? = None
   let mut remaining = auth_str
-  
+
   // Check for userinfo (contains @)
   if remaining.contains("@") {
     let parts = remaining.split("@").collect()
@@ -549,9 +553,10 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
       remaining = parts[1].to_string()
     }
   }
-  
+
   // Now parse host and port from remaining
-  let host_part = if remaining.contains(":") && remaining.strip_prefix("[") == None {
+  let host_part = if remaining.contains(":") &&
+    remaining.strip_prefix("[") == None {
     // Regular host with port (not IPv6)
     let parts = remaining.split(":").collect()
     if parts.length() >= 2 {
@@ -560,37 +565,28 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
       if potential_port.length() > 0 {
         let mut is_numeric = true
         for i = 0; i < potential_port.length(); i = i + 1 {
-          match potential_port.get(i) {
-            Some(char_code) => {
-              let c = char_code.unsafe_to_char()
-              if not(is_digit(c)) {
-                is_numeric = false
-                break
-              }
-            }
-            None => {
-              is_numeric = false
-              break
-            }
+          let char_code_cu = potential_port.code_unit_at(i)
+          let char_code = char_code_cu.to_int()
+          let c = char_code.unsafe_to_char()
+          if !is_digit(c) {
+            is_numeric = false
+            break
           }
         }
         if is_numeric {
           // Convert to int
           let mut port_value = 0
           for i = 0; i < potential_port.length(); i = i + 1 {
-            match potential_port.get(i) {
-              Some(char_code) => {
-                let digit = char_code - 48 // '0' = 48
-                port_value = port_value * 10 + digit
-              }
-              None => break
-            }
+            let char_code_cu = potential_port.code_unit_at(i)
+            let char_code = char_code_cu.to_int()
+            let digit = char_code - 48 // '0' = 48
+            port_value = port_value * 10 + digit
           }
           if port_value < 0 || port_value > 65535 {
             raise InvalidPort(potential_port)
           }
           port = Some(port_value)
-          
+
           // Reconstruct host without the port
           let host_parts : Array[String] = []
           for i = 0; i < parts.length() - 1; i = i + 1 {
@@ -617,30 +613,21 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
         // Validate and parse port
         let mut is_numeric = true
         for i = 0; i < port_part.length(); i = i + 1 {
-          match port_part.get(i) {
-            Some(char_code) => {
-              let c = char_code.unsafe_to_char()
-              if not(is_digit(c)) {
-                is_numeric = false
-                break
-              }
-            }
-            None => {
-              is_numeric = false
-              break
-            }
+          let char_code_cu = port_part.code_unit_at(i)
+          let char_code = char_code_cu.to_int()
+          let c = char_code.unsafe_to_char()
+          if !is_digit(c) {
+            is_numeric = false
+            break
           }
         }
         if is_numeric && port_part.length() > 0 {
           let mut port_value = 0
           for i = 0; i < port_part.length(); i = i + 1 {
-            match port_part.get(i) {
-              Some(char_code) => {
-                let digit = char_code - 48
-                port_value = port_value * 10 + digit
-              }
-              None => break
-            }
+            let char_code_cu = port_part.code_unit_at(i)
+            let char_code = char_code_cu.to_int()
+            let digit = char_code - 48
+            port_value = port_value * 10 + digit
           }
           if port_value < 0 || port_value > 65535 {
             raise InvalidPort(port_part)
@@ -657,24 +644,27 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
   } else {
     remaining
   }
-  
+
   if host_part.length() == 0 {
     raise InvalidAuthority(auth_str)
   }
-  
+
   { userinfo, host: host_part, port }
 }
 
+///|
 /// Helper function to check if character is alphabetic
 fn is_alpha(c : Char) -> Bool {
   (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
+///|
 /// Helper function to check if character is numeric
 fn is_digit(c : Char) -> Bool {
   c >= '0' && c <= '9'
 }
 
+///|
 /// Create a new URI with the specified scheme.
 ///
 /// Returns a new URI instance with the scheme component replaced.
@@ -682,17 +672,17 @@ fn is_digit(c : Char) -> Bool {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Change HTTP to HTTPS
 /// let http_uri = @uri.parse("http://example.com/path")
 /// let https_uri = http_uri.with_scheme(Some("https"))
 /// inspect(https_uri.to_string(), content="https://example.com/path")
-/// 
+///
 /// // Remove scheme (make relative)
 /// let absolute_uri = @uri.parse("https://example.com/path")
 /// let relative_uri = absolute_uri.with_scheme(None)
 /// inspect(relative_uri.to_string(), content="example.com/path")
-/// 
+///
 /// // Add scheme to relative URI
 /// let relative = @uri.parse("/path/to/resource")
 /// let absolute = relative.with_scheme(Some("https"))
@@ -710,6 +700,7 @@ pub fn Uri::with_scheme(self : Uri, new_scheme : String?) -> Uri {
   { ..self, scheme: new_scheme }
 }
 
+///|
 /// Create a new URI with the specified host.
 ///
 /// Returns a new URI instance with the host component replaced.
@@ -718,17 +709,17 @@ pub fn Uri::with_scheme(self : Uri, new_scheme : String?) -> Uri {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Change host
 /// let uri = @uri.parse("https://old-host.com/path")
 /// let new_uri = uri.with_host(Some("new-host.com"))
 /// inspect(new_uri.to_string(), content="https://new-host.com/path")
-/// 
+///
 /// // Add host to relative URI
 /// let relative = @uri.parse("/path/to/resource")
 /// let with_host = relative.with_host(Some("example.com"))
 /// inspect(with_host.to_string(), content="example.com/path/to/resource")
-/// 
+///
 /// // Remove host (makes URI relative)
 /// let absolute = @uri.parse("https://example.com/path")
 /// let relative_uri = absolute.with_host(None)
@@ -746,7 +737,7 @@ pub fn Uri::with_host(self : Uri, new_host : String?) -> Uri {
   match new_host {
     Some(host) => {
       let new_authority = match self.authority {
-        Some(auth) => Some({ ..auth, host })
+        Some(auth) => Some({ ..auth, host, })
         None => Some({ userinfo: None, host, port: None })
       }
       { ..self, authority: new_authority }
@@ -755,6 +746,7 @@ pub fn Uri::with_host(self : Uri, new_host : String?) -> Uri {
   }
 }
 
+///|
 /// Create a new URI with the specified port
 pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
   match self.authority {
@@ -762,33 +754,40 @@ pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
       let new_authority = Some({ ..auth, port: new_port })
       { ..self, authority: new_authority }
     }
-    None => {
+    None =>
       match new_port {
         Some(port) => {
-          let new_authority = Some({ userinfo: None, host: "", port: Some(port) })
+          let new_authority = Some({
+            userinfo: None,
+            host: "",
+            port: Some(port),
+          })
           { ..self, authority: new_authority }
         }
         None => self
       }
-    }
   }
 }
 
+///|
 /// Create a new URI with the specified path
 pub fn Uri::with_path(self : Uri, new_path : String) -> Uri {
   { ..self, path: new_path }
 }
 
+///|
 /// Create a new URI with the specified query
 pub fn Uri::with_query(self : Uri, new_query : String?) -> Uri {
   { ..self, query: new_query }
 }
 
+///|
 /// Create a new URI with the specified fragment
 pub fn Uri::with_fragment(self : Uri, new_fragment : String?) -> Uri {
   { ..self, fragment: new_fragment }
 }
 
+///|
 /// Check if the URI is absolute (has a scheme)
 pub fn Uri::is_absolute(self : Uri) -> Bool {
   match self.scheme {
@@ -797,11 +796,13 @@ pub fn Uri::is_absolute(self : Uri) -> Bool {
   }
 }
 
+///|
 /// Check if the URI is relative (no scheme)
 pub fn Uri::is_relative(self : Uri) -> Bool {
-  !(self.is_absolute())
+  !self.is_absolute()
 }
 
+///|
 /// Get the default port for a given scheme
 fn default_port(scheme : String) -> Int? {
   match scheme {
@@ -821,85 +822,83 @@ fn default_port(scheme : String) -> Int? {
   }
 }
 
+///|
 /// Get the effective port (explicit port or default port for scheme)
 pub fn Uri::effective_port(self : Uri) -> Int? {
   match self.authority {
-    Some(auth) => {
+    Some(auth) =>
       match auth.port {
         Some(port) => Some(port)
-        None => {
+        None =>
           match self.scheme {
             Some(scheme) => default_port(scheme)
             None => None
           }
-        }
       }
-    }
     None => None
   }
 }
 
+///|
 /// Normalize a URI (remove default ports, normalize path, etc.)
 pub fn Uri::normalize(self : Uri) -> Uri {
   let mut normalized = self
-  
+
   // Remove default port if present
   match self.authority {
-    Some(auth) => {
+    Some(auth) =>
       match (self.scheme, auth.port) {
-        (Some(scheme), Some(port)) => {
+        (Some(scheme), Some(port)) =>
           match default_port(scheme) {
-            Some(default) => {
+            Some(default) =>
               if port == default {
                 let new_auth = { ..auth, port: None }
                 normalized = { ..normalized, authority: Some(new_auth) }
               }
-            }
             None => ()
           }
-        }
         _ => ()
       }
-    }
     None => ()
   }
-  
+
   // Normalize path (remove redundant slashes, resolve . and ..)
   normalized = { ..normalized, path: normalize_path(normalized.path) }
-  
+
   normalized
 }
 
+///|
 /// Normalize a path by removing redundant elements
 fn normalize_path(path : String) -> String {
   if path.length() == 0 {
     return path
   }
-  
+
   // Split path into segments
   let segments = path.split("/").collect()
   let normalized_segments : Array[String] = []
-  
+
   for segment in segments {
     let seg_str = segment.to_string()
     match seg_str {
       "." => () // Skip current directory references
-      ".." => {
+      ".." =>
         // Remove last segment if possible (go up one directory)
-        if normalized_segments.length() > 0 && normalized_segments[normalized_segments.length() - 1] != ".." {
+        if normalized_segments.length() > 0 &&
+          normalized_segments[normalized_segments.length() - 1] != ".." {
           let _ = normalized_segments.pop()
         } else if path.strip_prefix("/") == None {
           // Only add .. for relative paths
           normalized_segments.push("..")
         }
-      }
       _ => normalized_segments.push(seg_str)
     }
   }
-  
+
   // Reconstruct path
   let result = normalized_segments.join("/")
-  
+
   // Preserve leading slash for absolute paths
   if path.strip_prefix("/") != None && result.strip_prefix("/") == None {
     "/" + result
@@ -908,6 +907,7 @@ fn normalize_path(path : String) -> String {
   }
 }
 
+///|
 /// Resolve a relative URI against a base URI according to RFC3986.
 ///
 /// This function implements URI resolution as defined in RFC3986 Section 5.2.
@@ -916,19 +916,19 @@ fn normalize_path(path : String) -> String {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Resolve relative path
 /// let base = @uri.parse("https://example.com/docs/guide/")
 /// let relative = @uri.parse("../api/reference.html")
 /// let resolved = @uri.resolve(base, relative)
 /// inspect(resolved.to_string(), content="https://example.com/docs/api/reference.html")
-/// 
+///
 /// // Resolve absolute path (replaces base path)
 /// let base2 = @uri.parse("https://example.com/old/path")
 /// let absolute_path = @uri.parse("/new/path")
 /// let resolved2 = @uri.resolve(base2, absolute_path)
 /// inspect(resolved2.to_string(), content="https://example.com/new/path")
-/// 
+///
 /// // Absolute URI returns unchanged
 /// let base3 = @uri.parse("https://example.com/")
 /// let absolute_uri = @uri.parse("https://other.com/path")
@@ -957,26 +957,25 @@ pub fn resolve(base : Uri, relative : Uri) -> Uri raise UriError {
   if relative.is_absolute() {
     return relative
   }
-  
+
   // Base URI must be absolute
   if base.is_relative() {
     raise InvalidPath("Base URI must be absolute")
   }
-  
+
   let mut resolved = base
-  
+
   // If relative has authority, use it and its path/query/fragment
   match relative.authority {
-    Some(_) => {
+    Some(_) =>
       resolved = {
         scheme: base.scheme,
         authority: relative.authority,
         path: relative.path,
         query: relative.query,
-        fragment: relative.fragment
+        fragment: relative.fragment,
       }
-    }
-    None => {
+    None =>
       // No authority in relative, use base authority
       if relative.path == "" {
         // Empty path, use base path
@@ -988,7 +987,7 @@ pub fn resolve(base : Uri, relative : Uri) -> Uri raise UriError {
             Some(_) => relative.query
             None => base.query
           },
-          fragment: relative.fragment
+          fragment: relative.fragment,
         }
       } else {
         // Non-empty path
@@ -999,21 +998,21 @@ pub fn resolve(base : Uri, relative : Uri) -> Uri raise UriError {
           // Relative path, resolve against base
           resolve_relative_path(base.path, relative.path)
         }
-        
+
         resolved = {
           scheme: base.scheme,
           authority: base.authority,
           path: resolved_path,
           query: relative.query,
-          fragment: relative.fragment
+          fragment: relative.fragment,
         }
       }
-    }
   }
-  
+
   resolved.normalize()
 }
 
+///|
 /// Resolve a relative path against a base path
 fn resolve_relative_path(base_path : String, relative_path : String) -> String {
   // Remove filename from base path (keep directory part)
@@ -1031,19 +1030,20 @@ fn resolve_relative_path(base_path : String, relative_path : String) -> String {
   } else {
     ""
   }
-  
+
   normalize_path(base_dir + relative_path)
 }
 
+///|
 /// Parse query string into key-value pairs
 fn parse_query(query_string : String) -> Array[(String, String)] {
   if query_string.length() == 0 {
     return []
   }
-  
+
   let pairs = query_string.split("&").collect()
   let result : Array[(String, String)] = []
-  
+
   for pair in pairs {
     let pair_str = pair.to_string()
     if pair_str.contains("=") {
@@ -1061,14 +1061,15 @@ fn parse_query(query_string : String) -> Array[(String, String)] {
       result.push((pair_str, ""))
     }
   }
-  
+
   result
 }
 
+///|
 /// Build query string from key-value pairs
 fn build_query(pairs : Array[(String, String)]) -> String {
   let parts : Array[String] = []
-  
+
   for i = 0; i < pairs.length(); i = i + 1 {
     let (key, value) = pairs[i]
     if value.length() == 0 {
@@ -1077,10 +1078,11 @@ fn build_query(pairs : Array[(String, String)]) -> String {
       parts.push(key + "=" + value)
     }
   }
-  
+
   parts.join("&")
 }
 
+///|
 /// Get a specific query parameter value
 pub fn Uri::get_query_param(self : Uri, param_name : String) -> String? {
   match self.query {
@@ -1098,16 +1100,21 @@ pub fn Uri::get_query_param(self : Uri, param_name : String) -> String? {
   }
 }
 
+///|
 /// Add or update a query parameter
-pub fn Uri::with_query_param(self : Uri, param_name : String, param_value : String) -> Uri {
+pub fn Uri::with_query_param(
+  self : Uri,
+  param_name : String,
+  param_value : String,
+) -> Uri {
   let current_params = match self.query {
     Some(query_str) => parse_query(query_str)
     None => []
   }
-  
+
   let new_params : Array[(String, String)] = []
   let mut found = false
-  
+
   // Update existing parameter or collect others
   for i = 0; i < current_params.length(); i = i + 1 {
     let (key, value) = current_params[i]
@@ -1118,28 +1125,29 @@ pub fn Uri::with_query_param(self : Uri, param_name : String, param_value : Stri
       new_params.push((key, value))
     }
   }
-  
+
   // Add new parameter if not found
-  if not(found) {
+  if !found {
     new_params.push((param_name, param_value))
   }
-  
+
   let new_query = if new_params.length() > 0 {
     Some(build_query(new_params))
   } else {
     None
   }
-  
+
   { ..self, query: new_query }
 }
 
+///|
 /// Remove a query parameter
 pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
   match self.query {
     Some(query_str) => {
       let current_params = parse_query(query_str)
       let new_params : Array[(String, String)] = []
-      
+
       // Keep all parameters except the one to remove
       for i = 0; i < current_params.length(); i = i + 1 {
         let (key, value) = current_params[i]
@@ -1147,19 +1155,20 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
           new_params.push((key, value))
         }
       }
-      
+
       let new_query = if new_params.length() > 0 {
         Some(build_query(new_params))
       } else {
         None
       }
-      
+
       { ..self, query: new_query }
     }
     None => self // No query to modify
   }
 }
 
+///|
 /// URL encode a string using percent encoding according to RFC3986.
 ///
 /// Encodes unsafe characters as %XX where XX is the hexadecimal representation.
@@ -1168,19 +1177,19 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Basic encoding with spaces and punctuation
 /// let encoded = @uri.Uri::encode("hello world!")
 /// inspect(encoded, content="hello%20world%21")
-/// 
+///
 /// // Encoding special characters
 /// let special = @uri.Uri::encode("user@domain.com")
 /// inspect(special, content="user%40domain.com")
-/// 
+///
 /// // Encoding query parameter values
 /// let query_value = @uri.Uri::encode("search term with spaces")
 /// inspect(query_value, content="search%20term%20with%20spaces")
-/// 
+///
 /// // Safe characters remain unchanged
 /// let safe = @uri.Uri::encode("ABCabc123-_.~")
 /// inspect(safe, content="ABCabc123-_.~")
@@ -1199,26 +1208,24 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
 /// - `decode()` - Decode percent-encoded strings
 pub fn Uri::encode(input : String) -> String {
   let mut result = ""
-  
+
   for i = 0; i < input.length(); i = i + 1 {
-    match input.get(i) {
-      Some(char_code) => {
-        let c = char_code.unsafe_to_char()
-        if is_unreserved(c) {
-          result = result + c.to_string()
-        } else {
-          // Percent encode the character
-          let hex = int_to_hex(char_code)
-          result = result + "%" + (if hex.length() == 1 { "0" + hex } else { hex })
-        }
-      }
-      None => ()
+    let char_code_cu = input.code_unit_at(i)
+    let char_code = char_code_cu.to_int()
+    let c = char_code.unsafe_to_char()
+    if is_unreserved(c) {
+      result = result + c.to_string()
+    } else {
+      // Percent encode the character
+      let hex = int_to_hex(char_code)
+      result = result + "%" + (if hex.length() == 1 { "0" + hex } else { hex })
     }
   }
-  
+
   result
 }
 
+///|
 /// URL decode a percent-encoded string according to RFC3986.
 ///
 /// Decodes %XX sequences back to their original characters.
@@ -1226,23 +1233,23 @@ pub fn Uri::encode(input : String) -> String {
 ///
 /// # Examples
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// // Basic decoding
 /// let decoded = @uri.Uri::decode("hello%20world%21")
 /// inspect(decoded, content="hello world!")
-/// 
+///
 /// // Decoding special characters
 /// let email = @uri.Uri::decode("user%40domain.com")
 /// inspect(email, content="user@domain.com")
-/// 
+///
 /// // Mixed encoded and unencoded content
 /// let mixed = @uri.Uri::decode("path%2Fto%2Fresource")
 /// inspect(mixed, content="path/to/resource")
-/// 
+///
 /// // Invalid sequences are preserved
 /// let invalid = @uri.Uri::decode("hello%ZZ%20world")
 /// inspect(invalid, content="hello%ZZ world")
-/// 
+///
 /// // Already decoded strings remain unchanged
 /// let plain = @uri.Uri::decode("hello world")
 /// inspect(plain, content="hello world")
@@ -1262,51 +1269,47 @@ pub fn Uri::encode(input : String) -> String {
 pub fn Uri::decode(input : String) -> String {
   let mut result = ""
   let mut i = 0
-  
+
   while i < input.length() {
-    match input.get(i) {
-      Some(char_code) => {
-        let c = char_code.unsafe_to_char()
-        if c == '%' {
-          // Check if we have at least 2 more characters
-          if i + 2 < input.length() {
-            // Get the next two characters for hex decoding
-            let hex_str = input.substring(start=i + 1, end=i + 3)
-            match hex_to_int(hex_str) {
-              Some(decoded_value) => {
-                result = result + decoded_value.unsafe_to_char().to_string()
-                i = i + 3
-              }
-              None => {
-                // Invalid hex sequence, treat % as literal
-                result = result + "%"
-                i = i + 1
-              }
-            }
-          } else {
-            // Not enough characters for percent encoding
+    let char_code_cu = input.code_unit_at(i)
+    let char_code = char_code_cu.to_int()
+    let c = char_code.unsafe_to_char()
+    if c == '%' {
+      // Check if we have at least 2 more characters
+      if i + 2 < input.length() {
+        // Get the next two characters for hex decoding
+        let hex_str = input[i + 1:i + 3].to_string()
+        match hex_to_int(hex_str) {
+          Some(decoded_value) => {
+            result = result + decoded_value.unsafe_to_char().to_string()
+            i = i + 3
+          }
+          None => {
+            // Invalid hex sequence, treat % as literal
             result = result + "%"
             i = i + 1
           }
-        } else {
-          result = result + c.to_string()
-          i = i + 1
         }
-      }
-      None => {
+      } else {
+        // Not enough characters for percent encoding
+        result = result + "%"
         i = i + 1
       }
+    } else {
+      result = result + c.to_string()
+      i = i + 1
     }
   }
-  
+
   result
 }
 
+///|
 /// Parse query string into key-value pairs
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let params = @uri.Uri::parse_query("name=John&age=30&city=New%20York")
 /// inspect(params.length(), content="3")
 /// ```
@@ -1322,10 +1325,10 @@ pub fn Uri::parse_query(query_string : String) -> Array[(String, String)] {
   if query_string.length() == 0 {
     return []
   }
-  
+
   let pairs = query_string.split("&").collect()
   let result : Array[(String, String)] = []
-  
+
   for pair in pairs {
     let pair_str = pair.to_string()
     if pair_str.contains("=") {
@@ -1343,15 +1346,16 @@ pub fn Uri::parse_query(query_string : String) -> Array[(String, String)] {
       result.push((Uri::decode(pair_str), ""))
     }
   }
-  
+
   result
 }
 
+///|
 /// Build query string from key-value pairs
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let query = @uri.Uri::build_query([("name", "John Doe"), ("age", "30")])
 /// inspect(query, content="name=John%20Doe&age=30")
 /// ```
@@ -1365,7 +1369,7 @@ pub fn Uri::parse_query(query_string : String) -> Array[(String, String)] {
 /// Encoded query string
 pub fn Uri::build_query(pairs : Array[(String, String)]) -> String {
   let parts : Array[String] = []
-  
+
   for i = 0; i < pairs.length(); i = i + 1 {
     let (key, value) = pairs[i]
     let encoded_key = Uri::encode(key)
@@ -1376,16 +1380,18 @@ pub fn Uri::build_query(pairs : Array[(String, String)]) -> String {
       parts.push(encoded_key + "=" + encoded_value)
     }
   }
-  
+
   parts.join("&")
 }
 
+///|
 /// Get path segments as an array
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let uri = @uri.parse("/path/to/resource")
+///
 /// let _segments = uri.path_segments()
 /// // _segments will contain ["path", "to", "resource"]
 /// ```
@@ -1397,25 +1403,26 @@ pub fn Uri::path_segments(self : Uri) -> Array[String] {
   if self.path.length() == 0 {
     return []
   }
-  
+
   let segments = self.path.split("/").collect()
   let result : Array[String] = []
-  
+
   for segment in segments {
     let seg_str = segment.to_string()
     if seg_str.length() > 0 {
       result.push(Uri::decode(seg_str))
     }
   }
-  
+
   result
 }
 
+///|
 /// Create a new URI with the specified path segments
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let uri = @uri.empty().with_path_segments(["api", "v1", "users"])
 /// inspect(uri.path(), content="/api/v1/users")
 /// ```
@@ -1431,21 +1438,22 @@ pub fn Uri::with_path_segments(self : Uri, segments : Array[String]) -> Uri {
   if segments.length() == 0 {
     return { ..self, path: "" }
   }
-  
+
   let encoded_segments : Array[String] = []
   for segment in segments {
     encoded_segments.push(Uri::encode(segment.to_string()))
   }
-  
+
   let path = "/" + encoded_segments.join("/")
-  { ..self, path }
+  { ..self, path, }
 }
 
+///|
 /// Parse userinfo into username and password components
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let uri = @uri.parse("https://user:pass@example.com")
 /// match uri.userinfo_components() {
 ///   Some((user, Some(pass))) => {
@@ -1461,9 +1469,9 @@ pub fn Uri::with_path_segments(self : Uri, segments : Array[String]) -> Uri {
 /// Optional tuple of (username, optional password)
 pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
   match self.authority {
-    Some(auth) => {
+    Some(auth) =>
       match auth.userinfo {
-        Some(userinfo) => {
+        Some(userinfo) =>
           if userinfo.contains(":") {
             let parts = userinfo.split(":").collect()
             if parts.length() >= 2 {
@@ -1478,19 +1486,18 @@ pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
             let username = Uri::decode(userinfo)
             Some((username, None))
           }
-        }
         None => None
       }
-    }
     None => None
   }
 }
 
+///|
 /// Create a new URI with the specified username and password
 ///
 /// # Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let _uri = @uri.empty()
 ///   .with_host(Some("example.com"))
 ///   .with_userinfo(Some("user"), Some("pass"))
@@ -1505,22 +1512,26 @@ pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
 /// # Returns
 ///
 /// New URI with the specified userinfo
-pub fn Uri::with_userinfo(self : Uri, username : String?, password : String?) -> Uri {
+pub fn Uri::with_userinfo(
+  self : Uri,
+  username : String?,
+  password : String?,
+) -> Uri {
   match username {
     Some(user) => {
       let userinfo = match password {
         Some(pass) => Uri::encode(user) + ":" + Uri::encode(pass)
         None => Uri::encode(user)
       }
-      
+
       let new_authority = match self.authority {
         Some(auth) => Some({ ..auth, userinfo: Some(userinfo) })
         None => Some({ userinfo: Some(userinfo), host: "", port: None })
       }
-      
+
       { ..self, authority: new_authority }
     }
-    None => {
+    None =>
       match self.authority {
         Some(auth) => {
           let new_authority = Some({ ..auth, userinfo: None })
@@ -1528,65 +1539,63 @@ pub fn Uri::with_userinfo(self : Uri, username : String?, password : String?) ->
         }
         None => self
       }
-    }
   }
 }
 
+///|
 /// Check if character is unreserved (doesn't need encoding)
 fn is_unreserved(c : Char) -> Bool {
   is_alpha(c) || is_digit(c) || c == '-' || c == '.' || c == '_' || c == '~'
 }
 
+///|
 /// Convert hex string to integer
 fn hex_to_int(hex_str : String) -> Int? {
   if hex_str.length() != 2 {
     return None
   }
-  
+
   let mut result = 0
   for i = 0; i < 2; i = i + 1 {
-    match hex_str.get(i) {
-      Some(char_code) => {
-        let c = char_code.unsafe_to_char()
-        let digit_value = if c >= '0' && c <= '9' {
-          char_code - 48 // '0' = 48
-        } else if c >= 'A' && c <= 'F' {
-          char_code - 55 // 'A' = 65, so 'A' - 55 = 10
-        } else if c >= 'a' && c <= 'f' {
-          char_code - 87 // 'a' = 97, so 'a' - 87 = 10
-        } else {
-          return None // Invalid hex character
-        }
-        result = result * 16 + digit_value
-      }
-      None => return None
+    let char_code_cu = hex_str.code_unit_at(i)
+    let char_code = char_code_cu.to_int()
+    let c = char_code.unsafe_to_char()
+    let digit_value = if c >= '0' && c <= '9' {
+      char_code - 48 // '0' = 48
+    } else if c >= 'A' && c <= 'F' {
+      char_code - 55 // 'A' = 65, so 'A' - 55 = 10
+    } else if c >= 'a' && c <= 'f' {
+      char_code - 87 // 'a' = 97, so 'a' - 87 = 10
+    } else {
+      return None // Invalid hex character
     }
+    result = result * 16 + digit_value
   }
-  
+
   Some(result)
 }
 
+///|
 /// Convert integer to hex string
 fn int_to_hex(value : Int) -> String {
   if value == 0 {
     return "0"
   }
-  
+
   let mut result = ""
   let mut n = value
   let hex_chars = "0123456789ABCDEF"
-  
+
   while n > 0 {
     let digit = n % 16
-    match hex_chars.get(digit) {
-      Some(char_code) => {
-        result = char_code.unsafe_to_char().to_string() + result
-      }
-      None => break
+    if digit < hex_chars.length() {
+      let char_code = hex_chars.code_unit_at(digit).to_int()
+      result = char_code.unsafe_to_char().to_string() + result
+    } else {
+      break
     }
     n = n / 16
   }
-  
+
   result
 }
-

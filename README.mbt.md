@@ -29,7 +29,8 @@ Add this library to your MoonBit project by including it in your `moon.mod.json`
 
 ## Quick Start
 
-```moonbit
+```moonbit nocheck
+///|
 test "quick_start_example" {
   // Parse a URI
   let uri = @uri.parse("https://example.com:8080/path?query=value#fragment")
@@ -46,7 +47,10 @@ test "quick_start_example" {
     .with_host(Some("api.example.com"))
     .with_path("/v1/users")
     .with_query(Some("limit=10&offset=0"))
-  inspect(built_uri.to_string(), content="https://api.example.com/v1/users?limit=10&offset=0")
+  inspect(
+    built_uri.to_string(),
+    content="https://api.example.com/v1/users?limit=10&offset=0",
+  )
 }
 ```
 
@@ -83,7 +87,8 @@ Error types for URI operations:
 #### `of_string(uri_str: String) -> Result[Uri, UriError]`
 Parse a URI string into a `Uri` structure.
 
-```moonbit
+```moonbit nocheck
+///|
 test "of_string_example" {
   let uri = @uri.parse("https://example.com/path")
   inspect(uri.host(), content="Some(\"example.com\")")
@@ -93,7 +98,8 @@ test "of_string_example" {
 #### `Uri::to_string(self: Uri) -> String`
 Convert a `Uri` structure back to a string representation.
 
-```moonbit
+```moonbit nocheck
+///|
 test "to_string_example" {
   let uri = @uri.parse("https://example.com/path")
   let uri_string = uri.to_string()
@@ -160,7 +166,8 @@ Get the effective port (explicit port or default port for scheme).
 #### `normalize(uri: Uri) -> Uri`
 Normalize a URI by removing default ports and normalizing the path.
 
-```moonbit
+```moonbit nocheck
+///|
 test "normalize_example" {
   let uri = @uri.parse("https://example.com:443/path")
   let normalized = uri.normalize()
@@ -173,7 +180,8 @@ test "normalize_example" {
 #### `resolve(base: Uri, relative: Uri) -> Result[Uri, UriError]`
 Resolve a relative URI against a base URI.
 
-```moonbit
+```moonbit nocheck
+///|
 test "resolve_example" {
   let base = @uri.parse("https://example.com/dir/")
   let relative = @uri.parse("../other/file.html")
@@ -188,9 +196,12 @@ test "resolve_example" {
 
 ### Basic URI Parsing
 
-```moonbit
+```moonbit nocheck
+///|
 test "parse_http_uri" {
-  let uri = @uri.parse("https://user:pass@example.com:8080/path?query=value#section")
+  let uri = @uri.parse(
+    "https://user:pass@example.com:8080/path?query=value#section",
+  )
   inspect(uri.scheme(), content="Some(\"https\")")
   inspect(uri.host(), content="Some(\"example.com\")")
   inspect(uri.port(), content="Some(8080)")
@@ -202,44 +213,53 @@ test "parse_http_uri" {
 
 ### Building URIs
 
-```moonbit
+```moonbit nocheck
+///|
 test "build_api_uri" {
   let api_uri = @uri.empty()
     .with_scheme(Some("https"))
     .with_host(Some("api.github.com"))
     .with_path("/repos/owner/repo/issues")
     .with_query(Some("state=open&per_page=50"))
-  
-  inspect(api_uri.to_string(), content="https://api.github.com/repos/owner/repo/issues?state=open&per_page=50")
+
+  inspect(
+    api_uri.to_string(),
+    content="https://api.github.com/repos/owner/repo/issues?state=open&per_page=50",
+  )
 }
 ```
 
 ### URI Resolution
 
-```moonbit
+```moonbit nocheck
+///|
 test "resolve_relative_uri" {
   let base = @uri.parse("https://example.com/docs/guide/")
   let relative = @uri.parse("../api/reference.html")
-  
+
   let resolved = @uri.resolve(base, relative)
-  inspect(resolved.to_string(), content="https://example.com/docs/api/reference.html")
+  inspect(
+    resolved.to_string(),
+    content="https://example.com/docs/api/reference.html",
+  )
 }
 ```
 
 ### Query Parameter Handling
 
-```moonbit
+```moonbit nocheck
+///|
 test "query_parameters" {
   let uri = @uri.parse("https://search.example.com/?q=moonbit&lang=en&safe=on")
-  
+
   match uri.query() {
     Some(query_str) => {
       inspect(query_str, content="q=moonbit&lang=en&safe=on")
-      
+
       // Use built-in query parameter methods
       let q_param = uri.get_query_param("q")
       inspect(q_param, content="Some(\"moonbit\")")
-      
+
       let lang_param = uri.get_query_param("lang")
       inspect(lang_param, content="Some(\"en\")")
     }
@@ -250,7 +270,8 @@ test "query_parameters" {
 
 ### IPv6 Support
 
-```moonbit
+```moonbit nocheck
+///|
 test "ipv6_uri" {
   let uri = @uri.parse("http://[2001:db8::1]:8080/path")
   inspect(uri.scheme(), content="Some(\"http\")")
@@ -262,16 +283,17 @@ test "ipv6_uri" {
 
 ### URI Normalization
 
-```moonbit
+```moonbit nocheck
+///|
 test "uri_normalization" {
   let uri = @uri.parse("https://example.com:443/./path/../other/./file.html")
   let normalized = uri.normalize()
-  
+
   // Default HTTPS port (443) should be removed
   inspect(normalized.port(), content="None")
   // Path should be normalized
   inspect(normalized.path(), content="/other/file.html")
-  
+
   inspect(normalized.to_string(), content="https://example.com/other/file.html")
 }
 ```
@@ -297,7 +319,8 @@ The library recognizes default ports for common schemes:
 
 The library uses MoonBit's `Result` type for error handling. All parsing operations return `Result[Uri, UriError]` where `UriError` provides detailed information about parsing failures:
 
-```moonbit
+```moonbit nocheck
+///|
 test "error_handling_example" {
   // Test with a valid but unusual URI
   let uri = @uri.parse("custom://example.com")

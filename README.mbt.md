@@ -29,7 +29,7 @@ Add this library to your MoonBit project by including it in your `moon.mod.json`
 
 ## Quick Start
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "quick_start_example" {
   // Parse a URI
@@ -87,7 +87,7 @@ Error types for URI operations:
 #### `of_string(uri_str: String) -> Result[Uri, UriError]`
 Parse a URI string into a `Uri` structure.
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "of_string_example" {
   let uri = @uri.parse("https://example.com/path")
@@ -98,7 +98,7 @@ test "of_string_example" {
 #### `Uri::to_string(self: Uri) -> String`
 Convert a `Uri` structure back to a string representation.
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "to_string_example" {
   let uri = @uri.parse("https://example.com/path")
@@ -166,7 +166,7 @@ Get the effective port (explicit port or default port for scheme).
 #### `normalize(uri: Uri) -> Uri`
 Normalize a URI by removing default ports and normalizing the path.
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "normalize_example" {
   let uri = @uri.parse("https://example.com:443/path")
@@ -180,7 +180,7 @@ test "normalize_example" {
 #### `resolve(base: Uri, relative: Uri) -> Result[Uri, UriError]`
 Resolve a relative URI against a base URI.
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "resolve_example" {
   let base = @uri.parse("https://example.com/dir/")
@@ -196,7 +196,7 @@ test "resolve_example" {
 
 ### Basic URI Parsing
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "parse_http_uri" {
   let uri = @uri.parse(
@@ -213,7 +213,7 @@ test "parse_http_uri" {
 
 ### Building URIs
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "build_api_uri" {
   let api_uri = @uri.empty()
@@ -231,7 +231,7 @@ test "build_api_uri" {
 
 ### URI Resolution
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "resolve_relative_uri" {
   let base = @uri.parse("https://example.com/docs/guide/")
@@ -247,7 +247,7 @@ test "resolve_relative_uri" {
 
 ### Query Parameter Handling
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "query_parameters" {
   let uri = @uri.parse("https://search.example.com/?q=moonbit&lang=en&safe=on")
@@ -270,7 +270,7 @@ test "query_parameters" {
 
 ### IPv6 Support
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "ipv6_uri" {
   let uri = @uri.parse("http://[2001:db8::1]:8080/path")
@@ -283,7 +283,7 @@ test "ipv6_uri" {
 
 ### URI Normalization
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "uri_normalization" {
   let uri = @uri.parse("https://example.com:443/./path/../other/./file.html")
@@ -319,7 +319,7 @@ The library recognizes default ports for common schemes:
 
 The library uses MoonBit's `Result` type for error handling. All parsing operations return `Result[Uri, UriError]` where `UriError` provides detailed information about parsing failures:
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "error_handling_example" {
   // Test with a valid but unusual URI

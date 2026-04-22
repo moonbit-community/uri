@@ -78,7 +78,7 @@ pub suberror UriError {
   InvalidFragment(String)
   InvalidPort(String)
   EmptyUri
-} derive(ToJson(style="flat"))
+} derive(ToJson)
 
 ///|
 /// Create an empty URI with default values.

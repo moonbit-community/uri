@@ -34,12 +34,12 @@ Add this library to your MoonBit project by including it in your `moon.mod.json`
 test "quick_start_example" {
   // Parse a URI
   let uri = @uri.parse("https://example.com:8080/path?query=value#fragment")
-  inspect(uri.scheme(), content="Some(\"https\")")
-  inspect(uri.host(), content="Some(\"example.com\")")
-  inspect(uri.port(), content="Some(8080)")
+  debug_inspect(uri.scheme(), content="Some(\"https\")")
+  debug_inspect(uri.host(), content="Some(\"example.com\")")
+  debug_inspect(uri.port(), content="Some(8080)")
   inspect(uri.path(), content="/path")
-  inspect(uri.query(), content="Some(\"query=value\")")
-  inspect(uri.fragment(), content="Some(\"fragment\")")
+  debug_inspect(uri.query(), content="Some(\"query=value\")")
+  debug_inspect(uri.fragment(), content="Some(\"fragment\")")
 
   // Build a URI using the builder methods
   let built_uri = @uri.empty()
@@ -91,7 +91,7 @@ Parse a URI string into a `Uri` structure.
 ///|
 test "of_string_example" {
   let uri = @uri.parse("https://example.com/path")
-  inspect(uri.host(), content="Some(\"example.com\")")
+  debug_inspect(uri.host(), content="Some(\"example.com\")")
 }
 ```
 
@@ -172,8 +172,8 @@ test "normalize_example" {
   let uri = @uri.parse("https://example.com:443/path")
   let normalized = uri.normalize()
   // Default HTTPS port (443) should be removed
-  inspect(normalized.port(), content="None")
-  inspect(normalized.host(), content="Some(\"example.com\")")
+  debug_inspect(normalized.port(), content="None")
+  debug_inspect(normalized.host(), content="Some(\"example.com\")")
 }
 ```
 
@@ -202,12 +202,12 @@ test "parse_http_uri" {
   let uri = @uri.parse(
     "https://user:pass@example.com:8080/path?query=value#section",
   )
-  inspect(uri.scheme(), content="Some(\"https\")")
-  inspect(uri.host(), content="Some(\"example.com\")")
-  inspect(uri.port(), content="Some(8080)")
+  debug_inspect(uri.scheme(), content="Some(\"https\")")
+  debug_inspect(uri.host(), content="Some(\"example.com\")")
+  debug_inspect(uri.port(), content="Some(8080)")
   inspect(uri.path(), content="/path")
-  inspect(uri.query(), content="Some(\"query=value\")")
-  inspect(uri.fragment(), content="Some(\"section\")")
+  debug_inspect(uri.query(), content="Some(\"query=value\")")
+  debug_inspect(uri.fragment(), content="Some(\"section\")")
 }
 ```
 
@@ -258,10 +258,10 @@ test "query_parameters" {
 
       // Use built-in query parameter methods
       let q_param = uri.get_query_param("q")
-      inspect(q_param, content="Some(\"moonbit\")")
+      debug_inspect(q_param, content="Some(\"moonbit\")")
 
       let lang_param = uri.get_query_param("lang")
-      inspect(lang_param, content="Some(\"en\")")
+      debug_inspect(lang_param, content="Some(\"en\")")
     }
     None => inspect("Should have query", content="\"Should have query\"")
   }
@@ -274,9 +274,9 @@ test "query_parameters" {
 ///|
 test "ipv6_uri" {
   let uri = @uri.parse("http://[2001:db8::1]:8080/path")
-  inspect(uri.scheme(), content="Some(\"http\")")
-  inspect(uri.host(), content="Some(\"[2001:db8::1]\")")
-  inspect(uri.port(), content="Some(8080)")
+  debug_inspect(uri.scheme(), content="Some(\"http\")")
+  debug_inspect(uri.host(), content="Some(\"[2001:db8::1]\")")
+  debug_inspect(uri.port(), content="Some(8080)")
   inspect(uri.path(), content="/path")
 }
 ```
@@ -290,7 +290,7 @@ test "uri_normalization" {
   let normalized = uri.normalize()
 
   // Default HTTPS port (443) should be removed
-  inspect(normalized.port(), content="None")
+  debug_inspect(normalized.port(), content="None")
   // Path should be normalized
   inspect(normalized.path(), content="/other/file.html")
 
@@ -324,8 +324,8 @@ The library uses MoonBit's `Result` type for error handling. All parsing operati
 test "error_handling_example" {
   // Test with a valid but unusual URI
   let uri = @uri.parse("custom://example.com")
-  inspect(uri.scheme(), content="Some(\"custom\")")
-  inspect(uri.host(), content="Some(\"example.com\")")
+  debug_inspect(uri.scheme(), content="Some(\"custom\")")
+  debug_inspect(uri.host(), content="Some(\"example.com\")")
 }
 ```
 

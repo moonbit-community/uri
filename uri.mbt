@@ -140,9 +140,9 @@ pub fn parse(uri_str : String) -> Uri raise UriError {
   if remaining.contains("://") {
     let parts = remaining.split("://").collect()
     if parts.length() >= 2 {
-      let scheme_part = parts[0].to_string()
+      let scheme_part = parts[0].to_owned()
       if is_valid_scheme(scheme_part) {
-        let rest = parts[1].to_string()
+        let rest = parts[1].to_owned()
         // Parse the rest
         return parse_with_scheme(scheme_part, rest)
       } else {
@@ -163,9 +163,9 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
 
   // Split by fragment first
   let parts_fragment = rest.split("#").collect()
-  let main_part = parts_fragment[0].to_string()
+  let main_part = parts_fragment[0].to_owned()
   let fragment_part = if parts_fragment.length() > 1 {
-    let frag = parts_fragment[1].to_string()
+    let frag = parts_fragment[1].to_owned()
     // Basic fragment validation - no spaces allowed
     if frag.contains(" ") {
       raise InvalidFragment(frag)
@@ -178,9 +178,9 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
 
   // Split by query
   let parts_query = main_part.split("?").collect()
-  let path_authority_part = parts_query[0].to_string()
+  let path_authority_part = parts_query[0].to_owned()
   let query_part = if parts_query.length() > 1 {
-    let q = parts_query[1].to_string()
+    let q = parts_query[1].to_owned()
     // Basic query validation - no unescaped spaces
     if q.contains(" ") {
       raise InvalidQuery(q)
@@ -194,7 +194,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
   // Split authority and path
   let parts_path = path_authority_part.split("/").collect()
   if parts_path.length() > 0 {
-    let authority_part = parts_path[0].to_string()
+    let authority_part = parts_path[0].to_owned()
     if authority_part.length() > 0 {
       let auth = parse_authority(authority_part)
       uri = { ..uri, authority: Some(auth) }
@@ -204,7 +204,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
     if parts_path.length() > 1 {
       let path_parts : Array[String] = []
       for i = 1; i < parts_path.length(); i = i + 1 {
-        path_parts.push(parts_path[i].to_string())
+        path_parts.push(parts_path[i].to_owned())
       }
       let path = "/" + path_parts.join("/")
       // Basic path validation - no unescaped spaces
@@ -549,8 +549,8 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
   if remaining.contains("@") {
     let parts = remaining.split("@").collect()
     if parts.length() >= 2 {
-      userinfo = Some(parts[0].to_string())
-      remaining = parts[1].to_string()
+      userinfo = Some(parts[0].to_owned())
+      remaining = parts[1].to_owned()
     }
   }
 
@@ -560,7 +560,7 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
     // Regular host with port (not IPv6)
     let parts = remaining.split(":").collect()
     if parts.length() >= 2 {
-      let potential_port = parts[parts.length() - 1].to_string() // Take the last part as port
+      let potential_port = parts[parts.length() - 1].to_owned() // Take the last part as port
       // Validate port is numeric
       if potential_port.length() > 0 {
         let mut is_numeric = true
@@ -590,7 +590,7 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
           // Reconstruct host without the port
           let host_parts : Array[String] = []
           for i = 0; i < parts.length() - 1; i = i + 1 {
-            host_parts.push(parts[i].to_string())
+            host_parts.push(parts[i].to_owned())
           }
           host_parts.join(":")
         } else {
@@ -608,8 +608,8 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
     if remaining.contains("]:") {
       let bracket_parts = remaining.split("]:").collect()
       if bracket_parts.length() >= 2 {
-        let ipv6_part = bracket_parts[0].to_string() + "]"
-        let port_part = bracket_parts[1].to_string()
+        let ipv6_part = bracket_parts[0].to_owned() + "]"
+        let port_part = bracket_parts[1].to_owned()
         // Validate and parse port
         let mut is_numeric = true
         for i = 0; i < port_part.length(); i = i + 1 {
@@ -880,7 +880,7 @@ fn normalize_path(path : String) -> String {
   let normalized_segments : Array[String] = []
 
   for segment in segments {
-    let seg_str = segment.to_string()
+    let seg_str = segment.to_owned()
     match seg_str {
       "." => () // Skip current directory references
       ".." =>
@@ -1021,7 +1021,7 @@ fn resolve_relative_path(base_path : String, relative_path : String) -> String {
     if parts.length() > 1 {
       let dir_parts : Array[String] = []
       for i = 0; i < parts.length() - 1; i = i + 1 {
-        dir_parts.push(parts[i].to_string())
+        dir_parts.push(parts[i].to_owned())
       }
       dir_parts.join("/") + "/"
     } else {
@@ -1045,12 +1045,12 @@ fn parse_query(query_string : String) -> Array[(String, String)] {
   let result : Array[(String, String)] = []
 
   for pair in pairs {
-    let pair_str = pair.to_string()
+    let pair_str = pair.to_owned()
     if pair_str.contains("=") {
       let parts = pair_str.split("=").collect()
       if parts.length() >= 2 {
-        let key = parts[0].to_string()
-        let value = parts[1].to_string()
+        let key = parts[0].to_owned()
+        let value = parts[1].to_owned()
         result.push((key, value))
       } else {
         // No equals sign, treat as key with empty value
@@ -1278,7 +1278,7 @@ pub fn Uri::decode(input : String) -> String {
       // Check if we have at least 2 more characters
       if i + 2 < input.length() {
         // Get the next two characters for hex decoding
-        let hex_str = input[i + 1:i + 3].to_string()
+        let hex_str = input[i + 1:i + 3].to_owned()
         match hex_to_int(hex_str) {
           Some(decoded_value) => {
             result = result + decoded_value.unsafe_to_char().to_string()
@@ -1330,12 +1330,12 @@ pub fn Uri::parse_query(query_string : String) -> Array[(String, String)] {
   let result : Array[(String, String)] = []
 
   for pair in pairs {
-    let pair_str = pair.to_string()
+    let pair_str = pair.to_owned()
     if pair_str.contains("=") {
       let parts = pair_str.split("=").collect()
       if parts.length() >= 2 {
-        let key = Uri::decode(parts[0].to_string())
-        let value = Uri::decode(parts[1].to_string())
+        let key = Uri::decode(parts[0].to_owned())
+        let value = Uri::decode(parts[1].to_owned())
         result.push((key, value))
       } else {
         // No equals sign, treat as key with empty value
@@ -1408,7 +1408,7 @@ pub fn Uri::path_segments(self : Uri) -> Array[String] {
   let result : Array[String] = []
 
   for segment in segments {
-    let seg_str = segment.to_string()
+    let seg_str = segment.to_owned()
     if seg_str.length() > 0 {
       result.push(Uri::decode(seg_str))
     }
@@ -1475,8 +1475,8 @@ pub fn Uri::userinfo_components(self : Uri) -> (String, String?)? {
           if userinfo.contains(":") {
             let parts = userinfo.split(":").collect()
             if parts.length() >= 2 {
-              let username = Uri::decode(parts[0].to_string())
-              let password = Uri::decode(parts[1].to_string())
+              let username = Uri::decode(parts[0].to_owned())
+              let password = Uri::decode(parts[1].to_owned())
               Some((username, Some(password)))
             } else {
               let username = Uri::decode(userinfo)

@@ -60,6 +60,9 @@ pub struct Uri {
 } derive(ToJson)
 
 ///|
+pub extend Uri with ToJson::{to_json}
+
+///|
 /// Authority component of a URI
 /// Contains optional user info, required host, and optional port
 pub struct Authority {
@@ -67,6 +70,9 @@ pub struct Authority {
   host : String
   port : Int?
 } derive(ToJson)
+
+///|
+pub extend Authority with ToJson::{to_json}
 
 ///|
 /// Result type for URI parsing operations
@@ -79,6 +85,9 @@ pub suberror UriError {
   InvalidPort(String)
   EmptyUri
 } derive(ToJson)
+
+///|
+pub extend UriError with ToJson::{to_json}
 
 ///|
 /// Create an empty URI with default values.
@@ -279,10 +288,13 @@ pub fn Uri::to_string(self : Uri) -> String {
 
 ///|
 /// Implement Show trait for Uri to provide standard string representation
-pub impl Show for Uri with output(self, logger) {
+pub impl Show for Uri with fn output(self, logger) {
   // Use our existing to_string method for the Show implementation
   logger.write_string(self.to_string())
 }
+
+///|
+pub extend Uri with Show::{output}
 
 ///|
 /// Get the scheme component of the URI.

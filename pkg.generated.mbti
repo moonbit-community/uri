@@ -18,6 +18,7 @@ pub suberror UriError {
   InvalidPort(String)
   EmptyUri
 } derive(ToJson)
+pub fn UriError::to_json(Self) -> Json
 
 // Types and methods
 pub struct Authority {
@@ -25,6 +26,7 @@ pub struct Authority {
   host : String
   port : Int?
 } derive(ToJson)
+pub fn Authority::to_json(Self) -> Json
 
 pub struct Uri {
   scheme : String?
@@ -43,6 +45,7 @@ pub fn Uri::host(Self) -> String?
 pub fn Uri::is_absolute(Self) -> Bool
 pub fn Uri::is_relative(Self) -> Bool
 pub fn Uri::normalize(Self) -> Self
+pub fn Uri::output(Self, &Logger) -> Unit
 pub fn Uri::parse_query(String) -> Array[(String, String)]
 pub fn Uri::path(Self) -> String
 pub fn Uri::path_segments(Self) -> Array[String]
@@ -50,6 +53,7 @@ pub fn Uri::port(Self) -> Int?
 pub fn Uri::query(Self) -> String?
 pub fn Uri::remove_query_param(Self, String) -> Self
 pub fn Uri::scheme(Self) -> String?
+pub fn Uri::to_json(Self) -> Json
 pub fn Uri::to_string(Self) -> String
 pub fn Uri::userinfo_components(Self) -> (String, String?)?
 pub fn Uri::with_fragment(Self, String?) -> Self
@@ -66,4 +70,3 @@ pub impl Show for Uri
 // Type aliases
 
 // Traits
-

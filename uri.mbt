@@ -60,6 +60,11 @@ pub struct Uri {
 } derive(ToJson)
 
 ///|
+/// Keep `uri.to_json()` available in dot form for existing users of this
+/// published package (the implicit promotion of `impl ToJson` is deprecated).
+pub extend Uri with ToJson::{to_json}
+
+///|
 /// Authority component of a URI
 /// Contains optional user info, required host, and optional port
 pub struct Authority {
@@ -67,6 +72,10 @@ pub struct Authority {
   host : String
   port : Int?
 } derive(ToJson)
+
+///|
+/// Keep `authority.to_json()` available in dot form for existing users.
+pub extend Authority with ToJson::{to_json}
 
 ///|
 /// Result type for URI parsing operations
@@ -79,6 +88,10 @@ pub suberror UriError {
   InvalidPort(String)
   EmptyUri
 } derive(ToJson)
+
+///|
+/// Keep `err.to_json()` available in dot form for existing users.
+pub extend UriError with ToJson::{to_json}
 
 ///|
 /// Create an empty URI with default values.
@@ -95,7 +108,7 @@ pub suberror UriError {
 ///
 /// A new `Uri` with all components set to their default values.
 pub fn empty() -> Uri {
-  { scheme: None, authority: None, path: "", query: None, fragment: None }
+  { scheme: None, authority: None, path: "", query: None, fragment: None, }
 }
 
 ///|
@@ -152,14 +165,14 @@ pub fn parse(uri_str : String) -> Uri raise UriError {
   }
 
   // No scheme found, treat as path-only URI
-  { ..uri, path: remaining }
+  { ..uri, path: remaining, }
 }
 
 ///|
 /// Parse URI with known scheme
 fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
   let mut uri = empty()
-  uri = { ..uri, scheme: Some(scheme) }
+  uri = { ..uri, scheme: Some(scheme), }
 
   // Split by fragment first
   let parts_fragment = rest.split("#").collect()
@@ -174,7 +187,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
   } else {
     None
   }
-  uri = { ..uri, fragment: fragment_part }
+  uri = { ..uri, fragment: fragment_part, }
 
   // Split by query
   let parts_query = main_part.split("?").collect()
@@ -189,7 +202,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
   } else {
     None
   }
-  uri = { ..uri, query: query_part }
+  uri = { ..uri, query: query_part, }
 
   // Split authority and path
   let parts_path = path_authority_part.split("/").collect()
@@ -197,7 +210,7 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
     let authority_part = parts_path[0].to_owned()
     if authority_part.length() > 0 {
       let auth = parse_authority(authority_part)
-      uri = { ..uri, authority: Some(auth) }
+      uri = { ..uri, authority: Some(auth), }
     }
 
     // Reconstruct path from remaining parts
@@ -213,14 +226,14 @@ fn parse_with_scheme(scheme : String, rest : String) -> Uri raise UriError {
       }
       uri = { ..uri, path, }
     } else {
-      uri = { ..uri, path: "" }
+      uri = { ..uri, path: "", }
     }
   } else {
     // No authority, remaining is path
     if path_authority_part.contains(" ") {
       raise InvalidPath(path_authority_part)
     }
-    uri = { ..uri, path: path_authority_part }
+    uri = { ..uri, path: path_authority_part, }
   }
 
   uri
@@ -279,10 +292,14 @@ pub fn Uri::to_string(self : Uri) -> String {
 
 ///|
 /// Implement Show trait for Uri to provide standard string representation
-pub impl Show for Uri with output(self, logger) {
+pub impl Show for Uri with fn output(self, logger) {
   // Use our existing to_string method for the Show implementation
   logger.write_string(self.to_string())
 }
+
+///|
+/// Keep `uri.output(logger)` available in dot form for existing users.
+pub extend Uri with Show::{output}
 
 ///|
 /// Get the scheme component of the URI.
@@ -649,7 +666,7 @@ fn parse_authority(auth_str : String) -> Authority raise UriError {
     raise InvalidAuthority(auth_str)
   }
 
-  { userinfo, host: host_part, port }
+  { userinfo, host: host_part, port, }
 }
 
 ///|
@@ -697,7 +714,7 @@ fn is_digit(c : Char) -> Bool {
 ///
 /// A new `Uri` with the specified scheme
 pub fn Uri::with_scheme(self : Uri, new_scheme : String?) -> Uri {
-  { ..self, scheme: new_scheme }
+  { ..self, scheme: new_scheme, }
 }
 
 ///|
@@ -738,11 +755,11 @@ pub fn Uri::with_host(self : Uri, new_host : String?) -> Uri {
     Some(host) => {
       let new_authority = match self.authority {
         Some(auth) => Some({ ..auth, host, })
-        None => Some({ userinfo: None, host, port: None })
+        None => Some({ userinfo: None, host, port: None, })
       }
-      { ..self, authority: new_authority }
+      { ..self, authority: new_authority, }
     }
-    None => { ..self, authority: None }
+    None => { ..self, authority: None, }
   }
 }
 
@@ -751,8 +768,8 @@ pub fn Uri::with_host(self : Uri, new_host : String?) -> Uri {
 pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
   match self.authority {
     Some(auth) => {
-      let new_authority = Some({ ..auth, port: new_port })
-      { ..self, authority: new_authority }
+      let new_authority = Some({ ..auth, port: new_port, })
+      { ..self, authority: new_authority, }
     }
     None =>
       match new_port {
@@ -762,7 +779,7 @@ pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
             host: "",
             port: Some(port),
           })
-          { ..self, authority: new_authority }
+          { ..self, authority: new_authority, }
         }
         None => self
       }
@@ -772,19 +789,19 @@ pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
 ///|
 /// Create a new URI with the specified path
 pub fn Uri::with_path(self : Uri, new_path : String) -> Uri {
-  { ..self, path: new_path }
+  { ..self, path: new_path, }
 }
 
 ///|
 /// Create a new URI with the specified query
 pub fn Uri::with_query(self : Uri, new_query : String?) -> Uri {
-  { ..self, query: new_query }
+  { ..self, query: new_query, }
 }
 
 ///|
 /// Create a new URI with the specified fragment
 pub fn Uri::with_fragment(self : Uri, new_fragment : String?) -> Uri {
-  { ..self, fragment: new_fragment }
+  { ..self, fragment: new_fragment, }
 }
 
 ///|
@@ -852,8 +869,8 @@ pub fn Uri::normalize(self : Uri) -> Uri {
           match default_port(scheme) {
             Some(default) =>
               if port == default {
-                let new_auth = { ..auth, port: None }
-                normalized = { ..normalized, authority: Some(new_auth) }
+                let new_auth = { ..auth, port: None, }
+                normalized = { ..normalized, authority: Some(new_auth), }
               }
             None => ()
           }
@@ -863,7 +880,7 @@ pub fn Uri::normalize(self : Uri) -> Uri {
   }
 
   // Normalize path (remove redundant slashes, resolve . and ..)
-  normalized = { ..normalized, path: normalize_path(normalized.path) }
+  normalized = { ..normalized, path: normalize_path(normalized.path), }
 
   normalized
 }
@@ -1137,7 +1154,7 @@ pub fn Uri::with_query_param(
     None
   }
 
-  { ..self, query: new_query }
+  { ..self, query: new_query, }
 }
 
 ///|
@@ -1162,7 +1179,7 @@ pub fn Uri::remove_query_param(self : Uri, param_name : String) -> Uri {
         None
       }
 
-      { ..self, query: new_query }
+      { ..self, query: new_query, }
     }
     None => self // No query to modify
   }
@@ -1436,7 +1453,7 @@ pub fn Uri::path_segments(self : Uri) -> Array[String] {
 /// New URI with the specified path segments
 pub fn Uri::with_path_segments(self : Uri, segments : Array[String]) -> Uri {
   if segments.length() == 0 {
-    return { ..self, path: "" }
+    return { ..self, path: "", }
   }
 
   let encoded_segments : Array[String] = []
@@ -1525,17 +1542,17 @@ pub fn Uri::with_userinfo(
       }
 
       let new_authority = match self.authority {
-        Some(auth) => Some({ ..auth, userinfo: Some(userinfo) })
-        None => Some({ userinfo: Some(userinfo), host: "", port: None })
+        Some(auth) => Some({ ..auth, userinfo: Some(userinfo), })
+        None => Some({ userinfo: Some(userinfo), host: "", port: None, })
       }
 
-      { ..self, authority: new_authority }
+      { ..self, authority: new_authority, }
     }
     None =>
       match self.authority {
         Some(auth) => {
-          let new_authority = Some({ ..auth, userinfo: None })
-          { ..self, authority: new_authority }
+          let new_authority = Some({ ..auth, userinfo: None, })
+          { ..self, authority: new_authority, }
         }
         None => self
       }

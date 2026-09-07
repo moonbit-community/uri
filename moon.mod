@@ -1,0 +1,17 @@
+name = "bobzhang/uri"
+
+version = "0.1.1"
+
+readme = "README.md"
+
+repository = "https://github.com/moonbit-community/uri"
+
+license = "Apache-2.0"
+
+keywords = [ "uri", "url", "rfc3986", "parsing", "web" ]
+
+description = "RFC3986 compliant URI parsing library for MoonBit"
+
+options(
+  "alert-list": "+test_import_all",
+)

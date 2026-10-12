@@ -70,7 +70,7 @@ pub extend Uri with ToJson::{to_json}
 pub struct Authority {
   userinfo : String?
   host : String
-  port : Int?
+  port : Int32?
 } derive(ToJson)
 
 ///|
@@ -399,7 +399,7 @@ pub fn Uri::host(self : Uri) -> String? {
 /// # See Also
 ///
 /// - `effective_port()` - Get the effective port including scheme defaults
-pub fn Uri::port(self : Uri) -> Int? {
+pub fn Uri::port(self : Uri) -> Int32? {
   match self.authority {
     Some(auth) => auth.port
     None => None
@@ -559,7 +559,7 @@ fn is_valid_scheme(scheme : String) -> Bool {
 /// Parse authority component
 fn parse_authority(auth_str : String) -> Authority raise UriError {
   let mut userinfo : String? = None
-  let mut port : Int? = None
+  let mut port : Int32? = None
   let mut remaining = auth_str
 
   // Check for userinfo (contains @)
@@ -765,7 +765,7 @@ pub fn Uri::with_host(self : Uri, new_host : String?) -> Uri {
 
 ///|
 /// Create a new URI with the specified port
-pub fn Uri::with_port(self : Uri, new_port : Int?) -> Uri {
+pub fn Uri::with_port(self : Uri, new_port : Int32?) -> Uri {
   match self.authority {
     Some(auth) => {
       let new_authority = Some({ ..auth, port: new_port, })
@@ -821,7 +821,7 @@ pub fn Uri::is_relative(self : Uri) -> Bool {
 
 ///|
 /// Get the default port for a given scheme
-fn default_port(scheme : String) -> Int? {
+fn default_port(scheme : String) -> Int32? {
   match scheme {
     "http" => Some(80)
     "https" => Some(443)
@@ -841,7 +841,7 @@ fn default_port(scheme : String) -> Int? {
 
 ///|
 /// Get the effective port (explicit port or default port for scheme)
-pub fn Uri::effective_port(self : Uri) -> Int? {
+pub fn Uri::effective_port(self : Uri) -> Int32? {
   match self.authority {
     Some(auth) =>
       match auth.port {
@@ -1567,7 +1567,7 @@ fn is_unreserved(c : Char) -> Bool {
 
 ///|
 /// Convert hex string to integer
-fn hex_to_int(hex_str : String) -> Int? {
+fn hex_to_int(hex_str : String) -> Int32? {
   if hex_str.length() != 2 {
     return None
   }
@@ -1594,7 +1594,7 @@ fn hex_to_int(hex_str : String) -> Int? {
 
 ///|
 /// Convert integer to hex string
-fn int_to_hex(value : Int) -> String {
+fn int_to_hex(value : Int32) -> String {
   if value == 0 {
     return "0"
   }
